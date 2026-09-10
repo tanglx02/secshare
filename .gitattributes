@@ -1,0 +1,17 @@
+# 统一换行符，避免跨平台协作时出现整文件 diff
+* text=auto eol=lf
+
+# 二进制文件不参与换行符转换与文本 diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg text
+*.zip binary
+*.gz binary
+*.tar binary
+
+# lock 文件在 diff 中折叠
+package-lock.json -diff linguist-generated

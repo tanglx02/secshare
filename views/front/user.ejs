@@ -1,0 +1,190 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="breadcrumb"><a href="/">首页</a><span>/</span><span>用户中心</span></div>
+
+  <div class="user-layout">
+    <aside>
+      <div class="user-menu">
+        <div class="u-head">
+          <div class="name"><%= user.nickname || user.username %></div>
+          <div class="lv">
+            <% if (isVip) { %>👑 VIP <%= user.vipLevel %> · <%= user.vipExpireAt ? helpers.formatDate(user.vipExpireAt) + ' 到期' : '永久有效' %>
+            <% } else { %>普通用户 · <a href="/vip" style="color:#a5f3fc;">开通会员</a><% } %>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#7dd3fc;">积分：<b style="color:#fff;"><%= user.points || 0 %></b></div>
+        </div>
+        <nav>
+          <a href="/user?tab=profile" class="<%= tab === 'profile' ? 'active' : '' %>">👤 个人资料</a>
+          <a href="/user?tab=orders" class="<%= tab === 'orders' ? 'active' : '' %>">🧾 我的订单</a>
+          <a href="/user?tab=favorites" class="<%= tab === 'favorites' ? 'active' : '' %>">★ 我的收藏</a>
+          <a href="/user?tab=downloads" class="<%= tab === 'downloads' ? 'active' : '' %>">⬇ 下载记录</a>
+          <a href="/user?tab=notices" class="<%= tab === 'notices' ? 'active' : '' %>">
+            🔔 消息通知
+            <% if (unreadCount) { %><span class="badge-dot"><%= unreadCount %></span><% } %>
+          </a>
+          <a href="/vip">👑 开通会员</a>
+          <% if (user.role === 'admin') { %><a href="/admin">⚙️ 管理后台</a><% } %>
+          <a href="/logout">🚪 退出登录</a>
+        </nav>
+      </div>
+    </aside>
+
+    <main>
+      <% if (query.msg) { %><div class="alert alert-success"><%= query.msg %></div><% } %>
+
+      <% if (tab === 'profile') { %>
+        <div class="card">
+          <div class="card-head"><h3>个人资料</h3></div>
+          <div class="card-body">
+            <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+              <div class="stat-item"><b><%= isVip ? 'VIP ' + user.vipLevel : '普通' %></b><span>会员等级</span></div>
+              <div class="stat-item"><b><%= user.points || 0 %></b><span>我的积分</span></div>
+              <div class="stat-item"><b><%= user.vipExpireAt && isVip ? helpers.formatDate(user.vipExpireAt) : (isVip ? '永久' : '—') %></b><span>会员到期</span></div>
+              <div class="stat-item"><b><%= user.createdAt ? helpers.formatDate(user.createdAt) : '—' %></b><span>注册时间</span></div>
+            </div>
+
+            <form action="/user/profile" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>用户名（不可修改）</label>
+                  <input class="form-control" type="text" value="<%= user.username %>" disabled>
+                </div>
+                <div class="form-group">
+                  <label>昵称</label>
+                  <input class="form-control" type="text" name="nickname" value="<%= user.nickname || user.username %>">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>邮箱</label>
+                <input class="form-control" type="email" name="email" value="<%= user.email || '' %>" placeholder="用于接收通知与找回密码">
+              </div>
+              <button class="btn btn-primary" type="submit">保存资料</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-head"><h3>修改密码</h3></div>
+          <div class="card-body">
+            <form action="/user/password" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <div class="form-group">
+                <label>原密码</label>
+                <input class="form-control" type="password" name="oldPassword" required>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>新密码</label>
+                  <input class="form-control" type="password" name="newPassword" placeholder="至少 6 位" required>
+                </div>
+                <div class="form-group">
+                  <label>确认新密码</label>
+                  <input class="form-control" type="password" name="newPassword2" required>
+                </div>
+              </div>
+              <button class="btn btn-outline" type="submit">确认修改</button>
+            </form>
+          </div>
+        </div>
+
+      <% } else if (tab === 'orders') { %>
+        <div class="card">
+          <div class="card-head"><h3>我的订单</h3></div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr><th>订单号</th><th>内容</th><th>金额</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+              <tbody>
+                <% if (!orders || !orders.length) { %>
+                  <tr><td colspan="6" class="empty">暂无订单，<a href="/vip">去开通会员</a></td></tr>
+                <% } %>
+                <% (orders || []).forEach(function (o) { %>
+                  <tr>
+                    <td style="font-family:Consolas,monospace;font-size:12.5px;"><%= o.orderNo %></td>
+                    <td><%= o.remark || '会员开通' %></td>
+                    <td>¥<%= helpers.formatMoney(o.amount) %></td>
+                    <td>
+                      <% if (o.status === 'paid') { %><span class="badge tag-free">已支付</span>
+                      <% } else if (o.status === 'cancelled') { %><span class="badge tag-gray">已取消</span>
+                      <% } else { %><span class="badge tag-points">待支付</span><% } %>
+                    </td>
+                    <td class="muted small"><%= helpers.formatDate(o.createdAt, true) %></td>
+                    <td><a class="btn btn-outline btn-sm" href="/order/<%= o.orderNo %>">详情</a></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <% } else if (tab === 'favorites') { %>
+        <div class="card">
+          <div class="card-head"><h3>我的收藏</h3><span class="muted small"><%= (favorites || []).length %> 个</span></div>
+          <div class="card-body">
+            <% if (!favorites || !favorites.length) { %>
+              <div class="empty" style="text-align:center;color:var(--text-3);padding:34px 0;">还没有收藏任何资源</div>
+            <% } else { %>
+              <div class="res-list">
+                <% favorites.forEach(function (post) { %>
+                  <article class="res-row">
+                    <div class="thumb"><% if (post.cover) { %><img src="<%= post.cover %>" alt=""><% } else { %><span><%= post.categoryIcon %></span><% } %></div>
+                    <div class="main">
+                      <h3><a href="<%= post.url %>"><%= post.title %></a></h3>
+                      <p class="desc"><%= post.summaryText %></p>
+                      <div class="meta"><span>📂 <%= post.categoryName %></span><span>📅 <%= post.dateText %></span><span>⬇ <%= post.downloadsText %></span></div>
+                    </div>
+                  </article>
+                <% }); %>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+      <% } else if (tab === 'downloads') { %>
+        <div class="card">
+          <div class="card-head"><h3>下载记录</h3></div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr><th>资源</th><th>分类</th><th>下载时间</th><th>操作</th></tr></thead>
+              <tbody>
+                <% if (!downloads || !downloads.length) { %>
+                  <tr><td colspan="4" class="empty">暂无下载记录</td></tr>
+                <% } %>
+                <% (downloads || []).forEach(function (d) { %>
+                  <tr>
+                    <td><a href="<%= d.post.url %>"><%= d.post.title %></a></td>
+                    <td class="muted"><%= d.post.categoryName %></td>
+                    <td class="muted small"><%= helpers.formatDate(d.createdAt, true) %></td>
+                    <td><a class="btn btn-outline btn-sm" href="/download/<%= d.post.id %>">重新下载</a></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <% } else if (tab === 'notices') { %>
+        <div class="card">
+          <div class="card-head"><h3>消息通知</h3><button class="btn btn-ghost btn-sm" id="readAllNotices">全部标为已读</button></div>
+          <div class="card-body">
+            <% if (!notices || !notices.length) { %>
+              <div style="text-align:center;color:var(--text-3);padding:34px 0;">暂无消息</div>
+            <% } %>
+            <% (notices || []).forEach(function (n) { %>
+              <div style="padding:13px 0;border-bottom:1px dashed var(--border-2);">
+                <div style="font-weight:600;font-size:14px;margin-bottom:4px;">
+                  <%= n.title %> <% if (!n.read) { %><span class="badge tag-paid">新</span><% } %>
+                </div>
+                <div class="muted" style="font-size:13.5px;"><%= n.content %></div>
+                <div class="muted small" style="margin-top:4px;"><%= helpers.formatDate(n.createdAt, true) %></div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      <% } %>
+    </main>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

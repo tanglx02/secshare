@@ -1,0 +1,156 @@
+<%- include('partials/head') %>
+
+<% if (query.msg) { %><div class="alert alert-success"><%= query.msg %></div><% } %>
+<% if (query.err) { %><div class="alert alert-error"><%= query.err %></div><% } %>
+
+<div class="stat-cards">
+  <div class="stat-card c1"><div class="lbl">数据库体积</div><div class="val" style="font-size:21px;"><%= formatSize(footprint.dbSize) %></div></div>
+  <div class="stat-card c2"><div class="lbl">上传文件</div><div class="val" style="font-size:21px;"><%= footprint.uploadFiles %> 个</div></div>
+  <div class="stat-card c3"><div class="lbl">上传总体积</div><div class="val" style="font-size:21px;"><%= formatSize(footprint.uploadBytes) %></div></div>
+  <div class="stat-card"><div class="lbl">全站数据合计</div><div class="val" style="font-size:21px;"><%= formatSize(footprint.total) %></div></div>
+</div>
+
+<div class="alert alert-info">
+  当前站点包含 <b><%= footprint.counts.posts %></b> 个资源、<b><%= footprint.counts.users %></b> 个用户、
+  <b><%= footprint.counts.orders %></b> 笔订单、<b><%= footprint.counts.comments %></b> 条评论。
+  备份包为 <span class="mono">.tar.gz</span> 格式，可用系统自带的 <span class="mono">tar -xzf</span> 直接解压查看。
+  备份目录：<span class="mono"><%= dir %></span>
+</div>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>手动备份</h3></div>
+    <div class="card-body">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <form method="post" action="/admin/backup/create" style="display:inline;">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input type="hidden" name="scope" value="full">
+          <button class="btn btn-primary" type="submit">📦 立即全量备份</button>
+        </form>
+        <form method="post" action="/admin/backup/create" style="display:inline;">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input type="hidden" name="scope" value="data">
+          <button class="btn btn-outline" type="submit">仅备份数据</button>
+        </form>
+        <a class="btn btn-outline" href="/admin/backup/pack?scope=full">⬇ 打包并下载（全量）</a>
+        <a class="btn btn-ghost" href="/admin/backup/download">下载 db.json</a>
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        全量备份 = 数据库 + <span class="mono">public/uploads/</span> 下的封面图与附件；仅数据备份体积小，适合高频执行。
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>自动备份策略</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/backup/auto">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label class="checkbox" style="margin-bottom:12px;">
+          <input type="checkbox" name="backupAutoEnabled" <%= s.backupAutoEnabled !== false ? 'checked' : '' %>> 启用自动备份
+        </label>
+        <div class="form-row">
+          <div class="form-group">
+            <label>备份间隔（小时）</label>
+            <input class="form-control" type="number" name="backupIntervalHours" min="1" value="<%= s.backupIntervalHours %>">
+          </div>
+          <div class="form-group">
+            <label>保留份数</label>
+            <input class="form-control" type="number" name="backupKeep" min="1" value="<%= s.backupKeep %>">
+          </div>
+        </div>
+        <label class="checkbox" style="margin-bottom:12px;">
+          <input type="checkbox" name="backupIncludeUploads" <%= s.backupIncludeUploads !== false ? 'checked' : '' %>> 备份包含上传文件
+        </label>
+        <div class="form-group">
+          <label>自定义备份目录（可选）</label>
+          <input class="form-control" type="text" name="backupDir" value="<%= s.backupDir || '' %>" placeholder="留空使用 data/backups">
+          <div class="hint">可指向挂载的云盘目录实现异地容灾</div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">保存策略</button>
+        <div class="muted small" style="margin-top:10px;">
+          最近自动备份：<%= s.lastAutoBackupAt ? formatDate(s.lastAutoBackupAt, true) : '尚未执行' %><br>
+          说明：保留份数仅作用于自动备份，手动备份不会被自动删除。
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>备份记录（<%= files.length %>）</h3><span class="muted small">按时间倒序</span></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>文件名</th><th>来源</th><th>范围</th><th>大小</th><th>生成时间</th><th style="width:210px;">操作</th></tr>
+      </thead>
+      <tbody>
+        <% if (!files.length) { %><tr><td colspan="6" class="empty">还没有备份，建议先点「立即全量备份」</td></tr><% } %>
+        <% files.forEach(function (f) { %>
+          <tr>
+            <td class="mono small"><%= f.name %></td>
+            <td><span class="badge <%= f.isAuto ? 'b-blue' : 'b-green' %>"><%= f.isAuto ? '自动' : '手动' %></span></td>
+            <td class="small"><%= f.kind || '未知' %></td>
+            <td><b><%= formatSize(f.size) %></b></td>
+            <td class="muted small"><%= formatDate(f.mtime, true) %></td>
+            <td class="actions">
+              <a class="btn btn-outline btn-sm" href="/admin/backup/file/<%= encodeURIComponent(f.name) %>">下载</a>
+              <button class="btn btn-warn btn-sm" type="button" onclick="restoreFrom('<%= f.name %>')">恢复</button>
+              <form method="post" action="/admin/backup/delete/<%= encodeURIComponent(f.name) %>" style="display:inline;"
+                data-confirm="确定删除备份 <%= f.name %> 吗？">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button class="btn btn-danger btn-sm" type="submit">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>从文件恢复</h3></div>
+    <div class="card-body">
+      <form id="restoreForm" method="post" action="/admin/backup/restore" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="name" id="restoreName" value="">
+        <div class="form-group">
+          <input class="form-control" type="file" name="file" accept=".gz,.tar,.json" required>
+          <div class="hint">支持本站导出的 <span class="mono">.tar.gz</span> 全量备份包，也兼容旧版 <span class="mono">db-*.json</span></div>
+        </div>
+        <button class="btn btn-danger" type="submit"
+          onclick="return confirm('⚠️ 恢复会覆盖当前全站数据，确定继续吗？（系统会先自动创建一份当前快照）');">
+          ⚠️ 上传并恢复
+        </button>
+      </form>
+      <div class="alert alert-warn" style="margin-top:14px;margin-bottom:0;">
+        恢复是覆盖式操作：当前数据会被备份包中的内容整体替换。恢复前请确认备份包来源可靠。
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>容灾建议</h3></div>
+    <div class="card-body">
+      <ol class="help-steps">
+        <li><b>本地保留 + 异地一份</b>：在「自定义备份目录」填写挂载的 NAS / 云盘路径，或定期用 <span class="mono">scp</span> 把 <span class="mono">data/backups</span> 拉到另一台机器。</li>
+        <li><b>关键操作前先备份</b>：批量删除资源、恢复数据、导入大量内容之前，点一次「立即全量备份」。</li>
+        <li><b>定期演练恢复</b>：把备份包下载到本地，用 <span class="mono">tar -xzf 文件名.tar.gz</span> 解压，确认能看到 <span class="mono">db.json</span> 与 <span class="mono">uploads/</span>。</li>
+        <li><b>上传目录别漏</b>：资源封面、附件都在 <span class="mono">public/uploads/</span>，迁移服务器时务必一起带走。</li>
+        <li><b>数据库升级路径</b>：数据量超过十万条后，可把 <span class="mono">src/db/store.js</span> 换成 SQLite/MySQL 驱动，业务代码无需改动。</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script>
+function restoreFrom(name) {
+  if (!confirm('⚠️ 将用该备份覆盖当前全站数据（数据库 + 上传文件）。\n\n恢复前系统会自动保留一份当前快照作为回退点。\n\n确定继续吗？')) return;
+  document.getElementById('restoreName').value = name;
+  document.getElementById('restoreForm').submit();
+}
+</script>
+
+<%- include('partials/foot') %>

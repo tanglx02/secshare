@@ -1,0 +1,77 @@
+<%- include('partials/head') %>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>公告列表（<%= list.length %>）</h3></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>标题</th><th>内容</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+        <tbody>
+          <% if (!list.length) { %><tr><td colspan="5" class="empty">暂无公告</td></tr><% } %>
+          <% list.forEach(function (a) { %>
+            <tr>
+              <td><b><%= a.title %></b> <% if (a.pinned) { %><span class="badge b-red">置顶</span><% } %></td>
+              <td class="muted small" style="max-width:340px;"><%= a.content %></td>
+              <td>
+                <% if (a.active !== false) { %><span class="badge b-green">显示中</span>
+                <% } else { %><span class="badge b-gray">已隐藏</span><% } %>
+              </td>
+              <td class="muted small"><%= formatDate(a.createdAt) %></td>
+              <td class="actions">
+                <button class="btn btn-outline btn-sm" type="button"
+                  onclick='fillAnn(<%- JSON.stringify({ id: a.id, title: a.title, content: a.content, pinned: !!a.pinned, active: a.active !== false }).replace(/'/g, "&#39;") %>)'>编辑</button>
+                <form method="post" action="/admin/announcements/<%= a.id %>/delete" style="display:inline;" data-confirm="确定删除该公告吗？">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="btn btn-danger btn-sm" type="submit">删除</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3 id="annTitle">新增公告</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/announcements/save" id="annForm">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="id" id="anId" value="">
+        <div class="form-group">
+          <label>公告标题 <span style="color:var(--danger);">*</span></label>
+          <input class="form-control" type="text" name="title" id="anTitle2" required>
+        </div>
+        <div class="form-group">
+          <label>公告内容</label>
+          <textarea class="form-control" name="content" id="anContent" style="min-height:110px;"></textarea>
+        </div>
+        <label class="checkbox"><input type="checkbox" name="pinned" id="anPinned"> 置顶</label>
+        <label class="checkbox"><input type="checkbox" name="active" id="anActive" checked> 前台显示</label>
+        <div class="divider"></div>
+        <button class="btn btn-primary btn-block" type="submit">保存公告</button>
+        <button class="btn btn-outline btn-block" type="button" style="margin-top:8px;" onclick="resetAnn()">清空表单</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillAnn(a) {
+  document.getElementById('anId').value = a.id;
+  document.getElementById('anTitle2').value = a.title;
+  document.getElementById('anContent').value = a.content;
+  document.getElementById('anPinned').checked = a.pinned;
+  document.getElementById('anActive').checked = a.active;
+  document.getElementById('annTitle').textContent = '编辑公告';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function resetAnn() {
+  document.getElementById('annForm').reset();
+  document.getElementById('anId').value = '';
+  document.getElementById('anActive').checked = true;
+  document.getElementById('annTitle').textContent = '新增公告';
+}
+</script>
+
+<%- include('partials/foot') %>

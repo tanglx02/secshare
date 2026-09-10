@@ -1,0 +1,85 @@
+<%- include('partials/head') %>
+
+<div class="stat-cards">
+  <div class="stat-card c1"><div class="lbl">资源总数</div><div class="val"><%= siteStat.posts %></div></div>
+  <div class="stat-card c2"><div class="lbl">注册用户</div><div class="val"><%= compactNumber(siteStat.users) %></div></div>
+  <div class="stat-card c3"><div class="lbl">资源总浏览</div><div class="val"><%= compactNumber(siteStat.views) %></div></div>
+  <div class="stat-card c4"><div class="lbl">资源总下载</div><div class="val"><%= compactNumber(siteStat.downloads) %></div></div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>近 30 天访问趋势（PV）</h3></div>
+  <div class="card-body">
+    <% if (!visits.length) { %>
+      <div class="muted small" style="padding:30px 0;text-align:center;">暂无可统计数据，站点有访问后会自动记录</div>
+    <% } else { %>
+      <div class="chart">
+        <% visits.forEach(function (v) { %>
+          <div class="bar-wrap">
+            <div class="bar" style="height:<%= Math.max(2, Math.round((v.pv || 0) / maxPv * 100)) %>%;">
+              <span class="tip"><%= v.date %> · PV <%= v.pv %> · UV <%= (v.ips || []).length %></span>
+            </div>
+            <span class="x"><%= v.date.slice(5) %></span>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+  <div class="card">
+    <div class="card-head"><h3>👁 浏览榜 TOP 15</h3></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>#</th><th>标题</th><th>浏览</th><th>下载</th></tr></thead>
+        <tbody>
+          <% topPosts.forEach(function (p, i) { %>
+            <tr>
+              <td class="muted"><%= i + 1 %></td>
+              <td><a href="/resource/<%= p.slug || p.id %>" target="_blank"><%= p.title %></a></td>
+              <td><b><%= compactNumber(p.views || 0) %></b></td>
+              <td class="muted"><%= compactNumber(p.downloads || 0) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>⬇ 下载榜 TOP 15</h3></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>#</th><th>标题</th><th>下载</th><th>转化率</th></tr></thead>
+        <tbody>
+          <% topDownloads.forEach(function (p, i) { %>
+            <tr>
+              <td class="muted"><%= i + 1 %></td>
+              <td><a href="/resource/<%= p.slug || p.id %>" target="_blank"><%= p.title %></a></td>
+              <td><b><%= compactNumber(p.downloads || 0) %></b></td>
+              <td class="muted small"><%= p.views ? ((p.downloads || 0) / p.views * 100).toFixed(1) + '%' : '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>每日明细</h3></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>日期</th><th>PV</th><th>UV</th></tr></thead>
+      <tbody>
+        <% if (!visits.length) { %><tr><td colspan="3" class="empty">暂无数据</td></tr><% } %>
+        <% visits.slice().reverse().forEach(function (v) { %>
+          <tr><td class="mono"><%= v.date %></td><td><b><%= v.pv || 0 %></b></td><td class="muted"><%= (v.ips || []).length %></td></tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

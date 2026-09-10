@@ -1,0 +1,143 @@
+<%- include('partials/head') %>
+
+<div class="hero" style="padding:38px 0 34px;">
+  <div class="container">
+    <h1 style="font-size:26px;">👑 会员中心</h1>
+    <p>开通会员，解锁全站资源无限下载，享受更高效的安全工具获取体验</p>
+    <% if (user) { %>
+      <div class="hero-stats" style="margin-top:6px;">
+        <div class="hero-stat">
+          <b><%= user.vipLevel > 0 && isVip ? 'VIP ' + user.vipLevel : '普通用户' %></b>
+          <span>当前等级</span>
+        </div>
+        <div class="hero-stat">
+          <b><%= isVip ? (user.vipExpireAt ? helpers.formatDate(user.vipExpireAt) : '永久') : '未开通' %></b>
+          <span>会员到期时间</span>
+        </div>
+        <div class="hero-stat"><b><%= user.points || 0 %></b><span>我的积分</span></div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<div class="container">
+  <section class="section" style="margin-top:26px;">
+    <div class="section-title"><h2>选择适合你的套餐</h2></div>
+    <% if (!plans.length) { %>
+      <div class="card"><div class="card-body" style="text-align:center;padding:40px;">
+        <p class="muted">暂未配置会员套餐，请联系站长。</p>
+      </div></div>
+    <% } else { %>
+      <div class="plan-grid">
+        <% plans.forEach(function (p) { %>
+          <div class="plan-card <%= p.recommend ? 'recommend' : '' %>">
+            <% if (p.recommend) { %><div class="rec-tag">最受欢迎</div><% } %>
+            <h3><%= p.name %></h3>
+            <div class="price">
+              <small>¥</small><%= helpers.formatMoney(p.price) %><span class="unit">/ <%= p.days >= 36500 ? '永久' : p.days + '天' %></span>
+            </div>
+            <% if (p.originalPrice) { %>
+              <div class="origin">原价 ¥<%= helpers.formatMoney(p.originalPrice) %></div>
+            <% } %>
+            <div class="days">有效期：<%= p.days >= 36500 ? '终身有效' : p.days + ' 天' %></div>
+            <ul>
+              <% (p.features || []).forEach(function (f) { %><li><%= f %></li><% }); %>
+            </ul>
+            <% if (user) { %>
+              <form action="/order/create" method="post">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <input type="hidden" name="planId" value="<%= p.id %>">
+                <button class="btn <%= p.recommend ? 'btn-primary' : 'btn-outline' %> btn-block btn-lg" type="submit">立即开通</button>
+              </form>
+            <% } else { %>
+              <a class="btn <%= p.recommend ? 'btn-primary' : 'btn-outline' %> btn-block btn-lg" href="/login?redirect=<%= encodeURIComponent('/vip') %>">登录后开通</a>
+            <% } %>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+
+    <div class="alert alert-warn" style="margin-top:20px;">
+      💡 <b>支付说明：</b>当前站点默认未接入在线支付通道。下单后请联系站长（页面底部联系方式）完成付款，站长在后台手动确认后即自动开通会员。
+      如需接入微信/支付宝自动支付，请按 README 中的说明配置支付回调。
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><h2>权益对比</h2></div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table class="benefit-table">
+          <thead>
+            <tr>
+              <th>权益项</th>
+              <th>游客</th>
+              <th>注册用户</th>
+              <th>会员</th>
+              <th>永久会员</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>浏览资源详情</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>下载免费资源</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>下载登录可见资源</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>下载 VIP 专享资源</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>专属资料合集</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>新资源优先推送</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>一对一技术答疑</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+            <tr><td>有效期</td><td>—</td><td>—</td><td>按月/年</td><td>终身</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <% if (user && orders && orders.length) { %>
+  <section class="section">
+    <div class="section-title"><h2>我的开通记录</h2><a class="more" href="/user?tab=orders">全部订单 →</a></div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>订单号</th><th>内容</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+          <tbody>
+            <% orders.forEach(function (o) { %>
+              <tr>
+                <td style="font-family:Consolas,monospace;font-size:12.5px;"><%= o.orderNo %></td>
+                <td><%= o.remark || '会员开通' %></td>
+                <td>¥<%= helpers.formatMoney(o.amount) %></td>
+                <td>
+                  <% if (o.status === 'paid') { %><span class="badge tag-free">已支付</span>
+                  <% } else if (o.status === 'cancelled') { %><span class="badge tag-gray">已取消</span>
+                  <% } else { %><span class="badge tag-points">待支付</span><% } %>
+                </td>
+                <td class="muted small"><%= helpers.formatDate(o.createdAt, true) %></td>
+                <td><a class="btn btn-outline btn-sm" href="/order/<%= o.orderNo %>">查看</a></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <section class="section">
+    <div class="section-title"><h2>常见问题</h2></div>
+    <div class="card">
+      <div class="card-body">
+        <div class="article">
+          <h3>会员怎么开通？</h3>
+          <p>登录后在上方选择套餐下单，按页面提示完成付款，站长确认后系统自动开通对应时长。</p>
+          <h3>会员到期后下载过的资源还能用吗？</h3>
+          <p>可以。已下载保存到本地的文件不受会员到期影响，只是到期后无法再下载新的 VIP 资源。</p>
+          <h3>可以开发票吗？</h3>
+          <p>企业用户可联系站长开具电子普通发票，需提供公司名称与税号。</p>
+          <h3>资源有问题怎么办？</h3>
+          <p>在资源页面留言或通过「联系我们」反馈，我们会尽快补链或修复。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<%- include('partials/foot') %>

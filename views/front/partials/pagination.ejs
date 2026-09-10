@@ -1,0 +1,29 @@
+<%
+/* 分页：需要 pager, baseQuery（形如 "type=software&" 或 "q=xx&"） */
+var baseQuery = typeof baseQuery !== 'undefined' ? baseQuery : '';
+if (pager && pager.pages > 1) { %>
+<nav class="pagination">
+  <% if (pager.hasPrev) { %>
+    <a href="?<%= baseQuery %>page=<%= pager.page - 1 %>">上一页</a>
+  <% } else { %>
+    <span class="disabled">上一页</span>
+  <% } %>
+
+  <% pager.range.forEach(function (p) { %>
+    <% if (p === '...') { %>
+      <span class="disabled">…</span>
+    <% } else if (p === pager.page) { %>
+      <span class="current"><%= p %></span>
+    <% } else { %>
+      <a href="?<%= baseQuery %>page=<%= p %>"><%= p %></a>
+    <% } %>
+  <% }); %>
+
+  <% if (pager.hasNext) { %>
+    <a href="?<%= baseQuery %>page=<%= pager.page + 1 %>">下一页</a>
+  <% } else { %>
+    <span class="disabled">下一页</span>
+  <% } %>
+</div>
+<div class="text-center muted small" style="text-align:center;">共 <%= pager.total %> 条 / <%= pager.pages %> 页</div>
+<% } %>

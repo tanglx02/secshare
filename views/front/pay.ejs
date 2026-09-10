@@ -1,0 +1,156 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="breadcrumb">
+    <a href="/">首页</a><span>/</span><a href="/user?tab=orders">我的订单</a><span>/</span><span>支付</span>
+  </div>
+
+  <div style="max-width:560px;margin:22px auto 0;">
+    <% if (sandbox) { %>
+      <div class="alert alert-warn">
+        <b>沙箱环境</b>：当前使用支付宝沙箱网关，需使用沙箱买家账号（沙箱 APP 或沙箱账号登录支付宝）完成付款。正式上线前请到后台「支付设置」切换为生产环境。
+      </div>
+    <% } %>
+
+    <div class="card">
+      <div class="card-head"><h3>订单支付</h3></div>
+      <div class="card-body">
+        <div class="info-table">
+          <table class="info-table">
+            <tr><th>订单号</th><td style="font-family:Consolas,monospace;"><%= order.orderNo %></td></tr>
+            <tr><th>商品</th><td><%= order.remark || '会员开通' %></td></tr>
+            <tr><th>应付金额</th><td style="color:var(--danger);font-weight:800;font-size:20px;">¥<%= helpers.formatMoney(order.amount) %></td></tr>
+          </table>
+        </div>
+
+        <div id="payArea" style="margin-top:22px;text-align:center;">
+          <% if (!payReady) { %>
+            <div class="alert alert-warn" style="text-align:left;">
+              <b>支付宝支付尚未配置</b><br>
+              请联系站长人工开通，付款时备注订单号 <b><%= order.orderNo %></b>。
+            </div>
+            <a class="btn btn-primary" href="/contact">联系站长</a>
+          <% } else if (payType === 'qr') { %>
+            <div id="qrLoading" style="padding:30px 0;color:var(--text-3);">正在生成支付二维码…</div>
+            <div id="qrBox" class="hidden" style="padding:6px 0 10px;">
+              <img id="qrImg" alt="支付宝付款码" style="width:260px;height:260px;border:1px solid var(--border);border-radius:12px;background:#fff;padding:6px;">
+              <div style="margin-top:10px;font-size:13.5px;color:var(--text-2);">
+                请使用 <b>支付宝 App</b> 扫码完成付款
+              </div>
+            </div>
+            <div id="qrError" class="alert alert-error hidden" style="text-align:left;"></div>
+          <% } else { %>
+            <a class="btn btn-primary btn-lg" href="/pay/<%= order.orderNo %>/go">前往支付宝收银台付款 →</a>
+            <div class="muted small" style="margin-top:10px;">将跳转到支付宝官方收银台，支持扫码与账号登录支付</div>
+          <% } %>
+        </div>
+
+        <div id="statusBar" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-2);text-align:center;">
+          <div class="muted small" id="statusText">
+            <% if (payReady) { %>正在等待支付结果，付款完成后本页会自动跳转…<% } %>
+          </div>
+          <% if (payReady) { %>
+            <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" id="checkBtn" type="button">我已支付，立即核验</button>
+              <a class="btn btn-ghost btn-sm" href="/order/<%= order.orderNo %>">稍后再付</a>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="alert alert-info" style="margin-top:18px;text-align:left;">
+          <b>说明</b><br>
+          · 支付成功后系统会自动开通会员，无需联系站长<br>
+          · 若二维码失效，请返回订单页重新发起支付<br>
+          · 如遇付款问题，请把订单号 <b><%= order.orderNo %></b> 发给站长
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var orderNo = <%= JSON.stringify(order.orderNo) %>;
+  var csrf = <%= JSON.stringify(csrf) %>;
+  var payType = <%= JSON.stringify(payType) %>;
+  var ready = <%= payReady ? 'true' : 'false' %>;
+  var done = false;
+
+  function finish(redirect) {
+    if (done) return;
+    done = true;
+    document.getElementById('statusText').innerHTML = '<span style="color:var(--success);font-weight:600;">支付成功，正在跳转…</span>';
+    setTimeout(function () { location.href = redirect || ('/order/' + orderNo); }, 600);
+  }
+
+  function setStatus(html, cls) {
+    var el = document.getElementById('statusText');
+    if (el) el.innerHTML = html;
+  }
+
+  // 扫码模式：加载二维码
+  if (ready && payType === 'qr') {
+    fetch('/api/pay/qr/' + orderNo, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        document.getElementById('qrLoading').classList.add('hidden');
+        if (!d.ok) {
+          if (d.paid) return finish();
+          var box = document.getElementById('qrError');
+          box.classList.remove('hidden');
+          box.innerHTML = '<b>二维码生成失败</b><br>' + (d.error || '未知错误') +
+            '<br><span style="font-size:12.5px;">可尝试刷新页面，或改用电脑网站支付（需在后台切换支付方式）。</span>';
+          return;
+        }
+        document.getElementById('qrImg').src = d.dataUrl;
+        document.getElementById('qrBox').classList.remove('hidden');
+      })
+      .catch(function (err) {
+        document.getElementById('qrLoading').textContent = '二维码加载失败：' + err.message;
+      });
+  }
+
+  // 轮询订单状态
+  if (ready) {
+    var timer = setInterval(function () {
+      if (done) return clearInterval(timer);
+      fetch('/api/pay/status/' + orderNo, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) return;
+          if (d.status === 'paid') { clearInterval(timer); finish(d.redirect); }
+          else if (d.status === 'closed') { clearInterval(timer); setStatus('交易已关闭，请返回订单页重新下单', 'warn'); }
+        })
+        .catch(function () { /* 网络抖动忽略，下轮继续 */ });
+    }, 3000);
+  }
+
+  // 手动核验
+  var btn = document.getElementById('checkBtn');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      btn.disabled = true;
+      btn.textContent = '正在核验…';
+      fetch('/api/pay/query/' + orderNo, {
+        method: 'POST',
+        headers: { 'x-csrf-token': csrf },
+        credentials: 'same-origin',
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          btn.disabled = false;
+          btn.textContent = '我已支付，立即核验';
+          if (d.status === 'paid') return finish(d.redirect);
+          setStatus(d.error || d.message || '暂未检测到付款，请稍后再试');
+        })
+        .catch(function (err) {
+          btn.disabled = false;
+          btn.textContent = '我已支付，立即核验';
+          setStatus('核验失败：' + err.message);
+        });
+    });
+  }
+})();
+</script>
+
+<%- include('partials/foot') %>

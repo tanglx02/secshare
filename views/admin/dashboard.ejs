@@ -1,0 +1,119 @@
+<%- include('partials/head') %>
+
+<div class="stat-cards">
+  <div class="stat-card c1">
+    <span class="icon">📦</span>
+    <div class="lbl">资源总数</div>
+    <div class="val"><%= stat.posts %></div>
+    <div class="sub">已发布 <%= stat.postsPublished %> 个</div>
+  </div>
+  <div class="stat-card c2">
+    <span class="icon">👥</span>
+    <div class="lbl">注册用户</div>
+    <div class="val"><%= stat.users %></div>
+    <div class="sub">其中会员 <%= stat.vipUsers %> 人</div>
+  </div>
+  <div class="stat-card c3">
+    <span class="icon">💰</span>
+    <div class="lbl">累计收入</div>
+    <div class="val">¥<%= formatMoney(stat.revenue) %></div>
+    <div class="sub">已支付订单 <%= stat.paidOrders %> 笔</div>
+  </div>
+  <div class="stat-card c4">
+    <span class="icon">📈</span>
+    <div class="lbl">今日访问</div>
+    <div class="val"><%= compactNumber(stat.todayPv) %></div>
+    <div class="sub">独立访客 <%= stat.todayUv %> 人</div>
+  </div>
+</div>
+
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="lbl">累计 PV</div><div class="val" style="font-size:21px;"><%= compactNumber(stat.totalPv) %></div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">资源总浏览</div><div class="val" style="font-size:21px;"><%= compactNumber(stat.views) %></div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">资源总下载</div><div class="val" style="font-size:21px;"><%= compactNumber(stat.downloads) %></div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">待处理订单</div><div class="val" style="font-size:21px;color:<%= stat.pendingOrders ? 'var(--danger)' : 'var(--success)' %>;"><%= stat.pendingOrders %></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>近 14 天访问趋势</h3>
+    <span class="muted small">PV 柱状 / 悬停查看</span>
+  </div>
+  <div class="card-body">
+    <div class="chart">
+      <% trend.forEach(function (t) { %>
+        <div class="bar-wrap">
+          <div class="bar" style="height:<%= Math.max(2, Math.round(t.pv / maxPv * 100)) %>%;">
+            <span class="tip"><%= t.date %> · PV <%= t.pv %> · UV <%= t.uv %></span>
+          </div>
+          <span class="x"><%= t.date.slice(3) %></span>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;">
+  <div class="card">
+    <div class="card-head"><h3>🔥 下载排行 TOP 8</h3><a class="muted small" href="/admin/posts">资源管理 →</a></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>资源标题</th><th>分类</th><th>下载</th><th>浏览</th></tr></thead>
+        <tbody>
+          <% if (!hotPosts.length) { %><tr><td colspan="4" class="empty">暂无数据</td></tr><% } %>
+          <% hotPosts.forEach(function (p) { %>
+            <tr>
+              <td><a href="/resource/<%= p.slug || p.id %>" target="_blank"><%= p.title %></a></td>
+              <td class="muted small"><%= (catMap[p.categoryId] || {}).name || '未分类' %></td>
+              <td><b><%= compactNumber(p.downloads || 0) %></b></td>
+              <td class="muted"><%= compactNumber(p.views || 0) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head"><h3>🆕 最新注册</h3><a class="muted small" href="/admin/users">全部 →</a></div>
+      <div class="card-body" style="padding:8px 18px;">
+        <% if (!recentUsers.length) { %><div class="muted small" style="padding:14px 0;">暂无用户</div><% } %>
+        <% recentUsers.forEach(function (u) { %>
+          <div class="kv">
+            <span class="k" style="width:auto;">👤 <%= u.nickname || u.username %></span>
+            <span class="v muted small" style="text-align:right;"><%= timeAgo(u.createdAt) %></span>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>🧾 最新订单</h3><a class="muted small" href="/admin/orders">全部 →</a></div>
+      <div class="card-body" style="padding:8px 18px;">
+        <% if (!recentOrders.length) { %><div class="muted small" style="padding:14px 0;">暂无订单</div><% } %>
+        <% recentOrders.forEach(function (o) { %>
+          <div class="kv">
+            <span class="k mono" style="width:auto;font-size:12px;"><%= o.orderNo %></span>
+            <span class="v" style="text-align:right;">
+              <b>¥<%= formatMoney(o.amount) %></b>
+              <span class="badge <%= o.status === 'paid' ? 'b-green' : (o.status === 'pending' ? 'b-orange' : 'b-gray') %>" style="margin-left:5px;">
+                <%= o.status === 'paid' ? '已支付' : (o.status === 'pending' ? '待支付' : '已取消') %>
+              </span>
+            </span>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

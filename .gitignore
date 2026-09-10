@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+
+# 环境变量与日志
+.env
+.env.local
+*.log
+npm-debug.log*
+
+# 运行时数据（含用户密码哈希与支付密钥密文，绝不纳入版本控制）
+data/db.json
+data/db.json.corrupt-*
+data/backups/
+!data/backups/.gitkeep
+
+# 用户上传的内容（封面图 / 附件）
+public/uploads/images/*
+public/uploads/files/*
+!public/uploads/images/.gitkeep
+!public/uploads/files/.gitkeep
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# WorkBuddy 工作目录（本地开发笔记，不入库）
+.workbuddy/

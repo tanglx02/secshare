@@ -1,0 +1,186 @@
+<%- include('partials/head') %>
+
+<% if (query.msg) { %><div class="alert alert-success"><%= query.msg %></div><% } %>
+
+<form method="post" action="/admin/settings">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="__bools" value="<%= boolKeys.join(',') %>">
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;">
+    <div>
+      <div class="card">
+        <div class="card-head"><h3>站点基本信息</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>站点名称</label>
+            <input class="form-control" type="text" name="siteName" value="<%= s.siteName %>">
+          </div>
+          <div class="form-group">
+            <label>副标题 / Slogan</label>
+            <input class="form-control" type="text" name="siteSubtitle" value="<%= s.siteSubtitle %>">
+          </div>
+          <div class="form-group">
+            <label>站点描述（SEO Description）</label>
+            <textarea class="form-control" name="siteDescription" style="min-height:70px;"><%= s.siteDescription %></textarea>
+          </div>
+          <div class="form-group">
+            <label>站点关键词（SEO Keywords）</label>
+            <input class="form-control" type="text" name="siteKeywords" value="<%= s.siteKeywords %>">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>站点域名</label>
+              <input class="form-control" type="text" name="siteUrl" value="<%= s.siteUrl %>" placeholder="https://your-domain.com">
+              <div class="hint">用于 sitemap 与 RSS，上线后请改为正式域名</div>
+            </div>
+            <div class="form-group">
+              <label>Logo 文字</label>
+              <input class="form-control" type="text" name="logoText" value="<%= s.logoText %>">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Logo 图片（可选）</label>
+            <div style="display:flex;gap:8px;">
+              <input class="form-control" type="text" name="logoImage" id="logoImage" value="<%= s.logoImage %>" placeholder="/uploads/images/logo.png">
+              <input type="file" accept="image/*" style="display:none;" id="logoFile" onchange="uploadFile(this,'logoImage')">
+              <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('logoFile').click()">上传</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>ICP 备案号</label>
+              <input class="form-control" type="text" name="icp" value="<%= s.icp %>" placeholder="京ICP备xxxxxxxx号">
+            </div>
+            <div class="form-group">
+              <label>公安备案号</label>
+              <input class="form-control" type="text" name="police" value="<%= s.police %>" placeholder="京公网安备xxxxxxxx号">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>联系方式</h3></div>
+        <div class="card-body">
+          <div class="form-row-3">
+            <div class="form-group">
+              <label>邮箱</label>
+              <input class="form-control" type="text" name="contactEmail" value="<%= s.contactEmail %>">
+            </div>
+            <div class="form-group">
+              <label>微信</label>
+              <input class="form-control" type="text" name="contactWechat" value="<%= s.contactWechat %>">
+            </div>
+            <div class="form-group">
+              <label>QQ</label>
+              <input class="form-control" type="text" name="contactQQ" value="<%= s.contactQQ %>">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>法律文本</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>页脚提示语</label>
+            <textarea class="form-control" name="siteFooterNote" style="min-height:60px;"><%= s.siteFooterNote %></textarea>
+          </div>
+          <div class="form-group">
+            <label>免责声明（支持 Markdown）</label>
+            <textarea class="form-control" name="disclaimer" style="min-height:150px;"><%= s.disclaimer %></textarea>
+            <div class="hint">⚠️ 网络安全类站点务必备好免责声明与侵权处理流程，降低法律风险</div>
+          </div>
+          <div class="form-group">
+            <label>关于我们（支持 Markdown）</label>
+            <textarea class="form-control" name="aboutUs" style="min-height:100px;"><%= s.aboutUs %></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-head"><h3>功能开关</h3></div>
+        <div class="card-body">
+          <div class="switch-row">
+            <div><div class="label">开放注册</div><div class="desc">关闭后仅管理员可创建账号</div></div>
+            <label class="checkbox"><input type="checkbox" name="registerEnabled" <%= s.registerEnabled !== false ? 'checked' : '' %>></label>
+          </div>
+          <div class="switch-row">
+            <div><div class="label">邀请码注册</div><div class="desc">开启后注册需填写邀请码</div></div>
+            <label class="checkbox"><input type="checkbox" name="registerNeedInvite" <%= s.registerNeedInvite === true ? 'checked' : '' %>></label>
+          </div>
+          <div class="form-group" style="margin-top:12px;">
+            <label>邀请码</label>
+            <input class="form-control" type="text" name="inviteCode" value="<%= s.inviteCode %>">
+          </div>
+          <div class="form-group">
+            <label>注册赠送积分</label>
+            <input class="form-control" type="number" name="pointsPerRegister" value="<%= s.pointsPerRegister %>">
+          </div>
+          <div class="switch-row">
+            <div><div class="label">开启评论</div><div class="desc">关闭后资源页隐藏评论模块</div></div>
+            <label class="checkbox"><input type="checkbox" name="commentsEnabled" <%= s.commentsEnabled !== false ? 'checked' : '' %>></label>
+          </div>
+          <div class="switch-row">
+            <div><div class="label">强制登录下载</div><div class="desc">新资源默认下载权限的兜底策略</div></div>
+            <label class="checkbox"><input type="checkbox" name="downloadNeedLogin" <%= s.downloadNeedLogin !== false ? 'checked' : '' %>></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>变现设置</h3></div>
+        <div class="card-body">
+          <div class="switch-row">
+            <div><div class="label">会员功能</div><div class="desc">开启会员套餐与权限控制</div></div>
+            <label class="checkbox"><input type="checkbox" name="vipEnabled" <%= s.vipEnabled !== false ? 'checked' : '' %>></label>
+          </div>
+          <div class="switch-row">
+            <div><div class="label">在线购买</div><div class="desc">关闭后会员页不显示下单入口</div></div>
+            <label class="checkbox"><input type="checkbox" name="shopEnabled" <%= s.shopEnabled !== false ? 'checked' : '' %>></label>
+          </div>
+          <div class="switch-row">
+            <div><div class="label">测试支付按钮</div><div class="desc">⚠️ 仅供测试，上线前务必关闭</div></div>
+            <label class="checkbox"><input type="checkbox" name="payMock" <%= s.payMock === true ? 'checked' : '' %>></label>
+          </div>
+          <div class="switch-row">
+            <div><div class="label">广告功能</div><div class="desc">关闭后前台隐藏所有广告位</div></div>
+            <label class="checkbox"><input type="checkbox" name="adsEnabled" <%= s.adsEnabled !== false ? 'checked' : '' %>></label>
+          </div>
+          <div class="form-group" style="margin-top:12px;">
+            <label>货币符号</label>
+            <input class="form-control" type="text" name="moneyUnit" value="<%= s.moneyUnit %>">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>统计与 SEO</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>统计代码（百度统计 / Google Analytics）</label>
+            <textarea class="form-control" name="statsCode" style="min-height:110px;font-family:Consolas,monospace;font-size:12.5px;" placeholder="粘贴统计平台提供的 <script> 代码"><%= s.statsCode %></textarea>
+            <div class="hint">会插入到前台每个页面的 &lt;head&gt; 中</div>
+          </div>
+          <div class="alert alert-info" style="margin-bottom:0;font-size:12.5px;">
+            SEO 相关文件已自动生成：<br>
+            <a href="/sitemap.xml" target="_blank">/sitemap.xml</a> ·
+            <a href="/robots.txt" target="_blank">/robots.txt</a> ·
+            <a href="/rss.xml" target="_blank">/rss.xml</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div class="muted small">数据文件大小：<%= formatSize(dbSize) %> · 修改后点击右侧按钮保存</div>
+      <button class="btn btn-primary btn-lg" type="submit">💾 保存全部设置</button>
+    </div>
+  </div>
+</form>
+
+<%- include('partials/foot') %>

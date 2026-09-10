@@ -1,0 +1,114 @@
+<%- include('partials/head') %>
+
+<section class="hero">
+  <div class="container">
+    <h1><%= settings.siteName %></h1>
+    <p><%= settings.siteDescription %></p>
+    <div class="hero-actions" style="margin-bottom:26px;">
+      <a class="btn btn-primary btn-lg" href="/resources">🧰 浏览全部资源</a>
+      <a class="btn btn-outline btn-lg" href="/vip">👑 开通会员</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><b><%= helpers.compactNumber(stats.posts) %></b><span>收录资源</span></div>
+      <div class="hero-stat"><b><%= helpers.compactNumber(stats.downloads) %></b><span>累计下载</span></div>
+      <div class="hero-stat"><b><%= helpers.compactNumber(stats.views) %></b><span>资源浏览</span></div>
+      <div class="hero-stat"><b><%= helpers.compactNumber(stats.users) %></b><span>注册用户</span></div>
+    </div>
+  </div>
+</section>
+
+<% if (announcements && announcements.length) { %>
+<div class="notice-bar">
+  <div class="container">
+    <span class="label">公告</span>
+    <span class="content" id="noticeRotate" data-notices="<%= announcements.map(function (a) { return a.title + '：' + a.content; }).join('|||') %>">
+      <%= announcements[0].title %>：<%= announcements[0].content %>
+    </span>
+  </div>
+</div>
+<% } %>
+
+<div class="container">
+  <% if (settings.adsEnabled !== false) {
+       var topAd = services.content.adFor('home_top'); %>
+    <div style="padding-top:20px;">
+      <% if (topAd && topAd.type === 'html' && topAd.html) { %><%- topAd.html %>
+      <% } else if (topAd && topAd.image) { %>
+        <div class="ad-box"><a href="/ad/<%= topAd.id %>" target="_blank" rel="noopener nofollow"><img src="<%= topAd.image %>" alt="<%= topAd.name %>"></a></div>
+      <% } else { %>
+        <div class="ad-placeholder"><b>广告位招租</b>首页顶部横幅 728×90 · 日均独立访客持续增长中，欢迎联系站长投放</div>
+      <% } %>
+    </div>
+  <% } %>
+
+  <div class="layout">
+    <main>
+      <% if (featured && featured.length) { %>
+      <section class="section">
+        <div class="section-title">
+          <h2>⭐ 站长推荐</h2>
+          <a class="more" href="/resources">查看全部 →</a>
+        </div>
+        <div class="card-grid">
+          <% featured.forEach(function (post) { %>
+            <%- include('partials/card', { post: post }) %>
+          <% }); %>
+        </div>
+      </section>
+      <% } %>
+
+      <section class="section">
+        <div class="section-title">
+          <h2>🆕 最新上架</h2>
+          <a class="more" href="/resources">更多 →</a>
+        </div>
+        <div class="res-list">
+          <% latest.forEach(function (post) { %>
+            <article class="res-row">
+              <div class="thumb">
+                <% if (post.cover) { %><img src="<%= post.cover %>" alt="<%= post.title %>" loading="lazy">
+                <% } else { %><span><%= post.categoryIcon %></span><% } %>
+              </div>
+              <div class="main">
+                <h3>
+                  <% if (post.top) { %><span class="badge tag-paid" style="margin-right:5px;">置顶</span><% } %>
+                  <a href="<%= post.url %>"><%= post.title %></a>
+                </h3>
+                <p class="desc"><%= post.summaryText %></p>
+                <div class="meta">
+                  <span>📂 <%= post.categoryName %></span>
+                  <% if (post.version) { %><span>🏷 v<%= post.version %></span><% } %>
+                  <span>📅 <%= post.dateText %></span>
+                  <span>👁 <%= post.viewsText %></span>
+                </div>
+              </div>
+              <div class="side">
+                <% var lv = accessLabel(post.accessLevel); %>
+                <span class="badge <%= lv.cls %>"><%= lv.text %></span>
+                <a class="btn btn-outline btn-sm" href="<%= post.url %>">查看详情</a>
+              </div>
+            </article>
+          <% }); %>
+        </div>
+      </section>
+
+      <% if (docs && docs.length) { %>
+      <section class="section">
+        <div class="section-title">
+          <h2>📚 学习资料</h2>
+          <a class="more" href="/resources?type=doc">更多 →</a>
+        </div>
+        <div class="card-grid">
+          <% docs.forEach(function (post) { %>
+            <%- include('partials/card', { post: post }) %>
+          <% }); %>
+        </div>
+      </section>
+      <% } %>
+    </main>
+
+    <%- include('partials/sidebar') %>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

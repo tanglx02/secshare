@@ -1,0 +1,28 @@
+{
+  "name": "anquan-share",
+  "version": "1.0.0",
+  "private": true,
+  "description": "网络安全软件与资料分享平台（前台 + 后台管理 + 会员/广告变现）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node src/db/seed.js",
+    "reset": "node src/db/seed.js --reset",
+    "test": "node scripts/smoke.js",
+    "test:unit": "node scripts/unit.js",
+    "shots": "node scripts/screenshot.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "multer": "^2.0.1",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.10.0"
+  }
+}

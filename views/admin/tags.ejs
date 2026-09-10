@@ -1,0 +1,57 @@
+<%- include('partials/head') %>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>标签列表（<%= list.length %>）</h3><span class="muted small">标签计数每次打开自动同步</span></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>标签名</th><th>关联资源数</th><th>创建时间</th><th>操作</th></tr></thead>
+        <tbody>
+          <% if (!list.length) { %><tr><td colspan="4" class="empty">暂无标签</td></tr><% } %>
+          <% list.forEach(function (t) { %>
+            <tr>
+              <td><span class="tag-chip"><%= t.name %></span></td>
+              <td><b><%= t.count || 0 %></b></td>
+              <td class="muted small"><%= formatDate(t.createdAt) %></td>
+              <td class="actions">
+                <a class="btn btn-outline btn-sm" href="/tag/<%= t.slug %>" target="_blank">查看</a>
+                <form method="post" action="/admin/tags/<%= t.id %>/delete" style="display:inline;" data-confirm="确定删除标签「<%= t.name %>」吗？">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="btn btn-danger btn-sm" type="submit">删除</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head"><h3>新增标签</h3></div>
+      <div class="card-body">
+        <form method="post" action="/admin/tags/save">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="form-group">
+            <label>标签名</label>
+            <input class="form-control" type="text" name="name" placeholder="如：免安装" required>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">添加标签</button>
+        </form>
+        <div class="hint" style="margin-top:10px;">在编辑资源时直接输入标签也会自动创建</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>标签云预览</h3></div>
+      <div class="card-body">
+        <% list.slice(0, 30).forEach(function (t) { %>
+          <span class="tag-chip"><%= t.name %> <b style="color:var(--p);"><%= t.count || 0 %></b></span>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

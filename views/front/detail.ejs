@@ -1,0 +1,203 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="breadcrumb">
+    <a href="/">首页</a><span>/</span>
+    <% if (category) { %><a href="/category/<%= category.slug %>"><%= category.name %></a><span>/</span><% } %>
+    <span class="nowrap" style="max-width:340px;"><%= raw.title %></span>
+  </div>
+
+  <% if (settings.adsEnabled !== false) {
+       var dAd = services.content.adFor('detail_top'); %>
+    <div style="padding-top:14px;">
+      <% if (dAd && dAd.type === 'html' && dAd.html) { %><%- dAd.html %>
+      <% } else if (dAd && dAd.image) { %>
+        <div class="ad-box"><a href="/ad/<%= dAd.id %>" target="_blank" rel="noopener nofollow"><img src="<%= dAd.image %>" alt="<%= dAd.name %>"></a></div>
+      <% } else { %>
+        <div class="ad-placeholder"><b>广告位招租</b>详情页通栏 970×90</div>
+      <% } %>
+    </div>
+  <% } %>
+
+  <div class="layout">
+    <main>
+      <div class="detail-head">
+        <h1><%= raw.title %></h1>
+        <div class="detail-meta">
+          <span class="badge <%= accessLabel(raw.accessLevel).cls %>"><%= accessLabel(raw.accessLevel).text %></span>
+          <span>📂 <a href="/category/<%= category ? category.slug : '' %>"><%= category ? category.name : '未分类' %></a></span>
+          <% if (raw.version) { %><span class="dot"></span><span>版本 v<%= raw.version %></span><% } %>
+          <span class="dot"></span><span>📅 <%= post.dateText %></span>
+          <span class="dot"></span><span>👁 <%= post.viewsText %></span>
+          <span class="dot"></span><span>⬇ <%= post.downloadsText %></span>
+          <% if (raw.size) { %><span class="dot"></span><span>💾 <%= raw.size %></span><% } %>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-body">
+          <p style="margin:0;font-size:14.5px;color:var(--text-2);"><%= raw.summary || helpers.excerpt(raw.content, 200) %></p>
+          <div style="margin-top:12px;">
+            <% (raw.tags || []).forEach(function (t) { %>
+              <a class="chip" href="/tag/<%= encodeURIComponent(t) %>"># <%= t %></a>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下载区 -->
+      <div class="download-box" style="margin-top:18px;">
+        <% if (access.ok) { %>
+          <h3>⬇ 获取下载地址</h3>
+          <p class="tip">
+            本资源为
+            <b><%= accessLabel(raw.accessLevel).text %></b>，
+            <% if (raw.size) { %>文件大小 <%= raw.size %>，<% } %>
+            下载后请自行校验文件安全性。
+          </p>
+          <a class="btn btn-primary btn-lg" href="/download/<%= raw.id %>">立即获取下载地址</a>
+          <div style="margin-top:14px;">
+            <button class="btn btn-outline btn-sm" id="favBtn" data-id="<%= raw.id %>" data-fav="<%= favorited ? '1' : '0' %>">
+              <%= favorited ? '★ 已收藏' : '☆ 收藏此资源' %>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard && navigator.clipboard.writeText(location.href);alert('链接已复制');">🔗 复制链接</button>
+          </div>
+        <% } else { %>
+          <div class="locked-box">
+            <div class="lock-ico">🔒</div>
+            <% if (access.reason === 'login') { %>
+              <h3>该资源需要登录后才能下载</h3>
+              <p>注册账号即可免费获取下载地址，注册即赠送积分</p>
+              <div class="btns">
+                <a class="btn btn-primary" href="/login?redirect=<%= encodeURIComponent(currentUrl) %>">立即登录</a>
+                <a class="btn btn-outline" href="/register">免费注册</a>
+              </div>
+            <% } else if (access.reason === 'vip') { %>
+              <h3>该资源为 VIP 会员专享</h3>
+              <p>开通会员即可解锁全站 VIP 资源无限下载权限</p>
+              <div class="btns">
+                <a class="btn btn-primary" href="/vip">👑 开通会员</a>
+                <% if (!user) { %><a class="btn btn-outline" href="/login?redirect=<%= encodeURIComponent(currentUrl) %>">已有账号，登录</a><% } %>
+              </div>
+            <% } else if (access.reason === 'points') { %>
+              <h3>该资源需要 <%= access.need %> 积分兑换</h3>
+              <p>您当前拥有 <b style="color:var(--warn);"><%= access.have %></b> 积分，还差 <%= Math.max(0, access.need - access.have) %> 积分</p>
+              <div class="btns">
+                <a class="btn btn-primary" href="/vip">开通会员领取积分</a>
+                <a class="btn btn-outline" href="/user">查看我的积分</a>
+              </div>
+            <% } else if (access.reason === 'paid') { %>
+              <h3>该资源为单份付费资源</h3>
+              <p>售价 <b style="color:var(--danger);">¥<%= helpers.formatMoney(access.price) %></b>，购买后永久可下载</p>
+              <div class="btns">
+                <a class="btn btn-primary" href="/vip">联系站长购买</a>
+              </div>
+            <% } else { %>
+              <h3>暂无下载权限</h3>
+              <p>请登录或联系站长获取授权</p>
+              <div class="btns"><a class="btn btn-primary" href="/login">去登录</a></div>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- 正文 -->
+      <div class="card" style="margin-top:18px;">
+        <div class="card-head"><h3>资源详情</h3></div>
+        <div class="card-body">
+          <div class="article"><%- contentHtml %></div>
+        </div>
+      </div>
+
+      <!-- 相关推荐 -->
+      <% if (related && related.length) { %>
+      <div class="card" style="margin-top:18px;">
+        <div class="card-head"><h3>相关推荐</h3></div>
+        <div class="card-body">
+          <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">
+            <% related.forEach(function (post) { %>
+              <%- include('partials/card', { post: post, accessLabel: accessLabel, postUrl: postUrl }) %>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- 评论 -->
+      <% if (settings.commentsEnabled !== false) { %>
+      <div class="card" style="margin-top:18px;">
+        <div class="card-head"><h3>评论讨论 <span class="muted small" style="font-weight:400;">(<%= comments.length %>)</span></h3></div>
+        <div class="card-body">
+          <div class="comment-form" style="margin-bottom:8px;">
+            <textarea id="commentContent" placeholder="<%= user ? '说点什么，帮助其他同学…' : '请先登录后参与评论' %>" <%= user ? '' : 'disabled' %>></textarea>
+            <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+              <span class="muted small"><%= user ? '请勿发布违法或侵权内容，违规将被封号' : '' %></span>
+              <% if (user) { %>
+                <button class="btn btn-primary btn-sm" id="commentBtn" data-id="<%= raw.id %>">发表评论</button>
+              <% } else { %>
+                <a class="btn btn-primary btn-sm" href="/login?redirect=<%= encodeURIComponent(currentUrl) %>">登录后评论</a>
+              <% } %>
+            </div>
+          </div>
+          <div class="comment-list" id="commentList">
+            <% if (!comments.length) { %>
+              <div class="muted small" style="text-align:center;padding:22px 0;">还没有评论，来抢沙发～</div>
+            <% } %>
+            <% comments.forEach(function (c) { %>
+              <div class="comment">
+                <div class="avatar"><%= (c.author || '游')[0] %></div>
+                <div class="c-main">
+                  <div class="c-top">
+                    <b><%= c.author %></b>
+                    <span class="muted small"><%= helpers.timeAgo(c.createdAt) %></span>
+                  </div>
+                  <div class="c-body"><%= c.content %></div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+      <% } %>
+    </main>
+
+    <aside class="sidebar">
+      <div class="side-card">
+        <div class="head"><span class="ico">📋</span>资源信息</div>
+        <div class="body">
+          <table class="info-table">
+            <tr><th>资源类型</th><td><%= raw.type === 'doc' ? '学习资料' : '软件工具' %></td></tr>
+            <% if (raw.version) { %><tr><th>版本</th><td>v<%= raw.version %></td></tr><% } %>
+            <% if (raw.platform) { %><tr><th>适用平台</th><td><%= raw.platform %></td></tr><% } %>
+            <% if (raw.language) { %><tr><th>语言</th><td><%= raw.language %></td></tr><% } %>
+            <% if (raw.size) { %><tr><th>文件大小</th><td><%= raw.size %></td></tr><% } %>
+            <tr><th>下载权限</th><td><span class="badge <%= accessLabel(raw.accessLevel).cls %>"><%= accessLabel(raw.accessLevel).text %></span></td></tr>
+            <tr><th>更新时间</th><td><%= helpers.formatDate(raw.updatedAt || raw.publishedAt || raw.createdAt, true) %></td></tr>
+            <% if (raw.official) { %>
+            <tr><th>官方网站</th><td><a href="<%= raw.official %>" target="_blank" rel="noopener nofollow">前往官网 →</a></td></tr>
+            <% } %>
+          </table>
+        </div>
+      </div>
+
+      <% if (setting('adsEnabled') !== false) {
+           var sAd = services.content.adFor('sidebar'); %>
+        <% if (sAd && sAd.type === 'html' && sAd.html) { %><div><%- sAd.html %></div>
+        <% } else if (sAd && sAd.image) { %>
+          <div class="ad-box"><a href="/ad/<%= sAd.id %>" target="_blank" rel="noopener nofollow"><img src="<%= sAd.image %>" alt="<%= sAd.name %>"></a></div>
+        <% } else { %>
+          <div class="ad-placeholder"><b>广告位招租</b>侧边栏 300×250</div>
+        <% } %>
+      <% } %>
+
+      <div class="side-card" style="background:#fffbeb;border-color:#fde68a;">
+        <div class="body" style="color:#92400e;font-size:12.5px;line-height:1.85;">
+          <b style="display:block;margin-bottom:6px;color:#b45309;">⚠️ 安全提示</b>
+          请仅从本站或官方渠道获取资源，下载后建议先用杀毒软件扫描。任何工具的使用需遵守《网络安全法》，<b>严禁用于未授权目标</b>。
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

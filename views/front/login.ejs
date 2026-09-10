@@ -1,0 +1,33 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h2>欢迎回来</h2>
+      <p class="sub">登录后可下载登录可见资源、开通会员</p>
+
+      <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+      <form action="/login" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="redirect" value="<%= redirect %>">
+        <div class="form-group">
+          <label>用户名 / 邮箱</label>
+          <input class="form-control" type="text" name="account" value="<%= typeof account !== 'undefined' ? account : '' %>" placeholder="请输入用户名或邮箱" required autofocus>
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input class="form-control" type="password" name="password" placeholder="请输入密码" required>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" type="submit">登 录</button>
+      </form>
+
+      <div class="foot">
+        还没有账号？<a href="/register">立即注册</a>
+        <% if (setting('vipEnabled') !== false) { %> · <a href="/vip">了解会员</a><% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,140 @@
+<%- include('partials/head') %>
+
+<div class="stat-cards">
+  <div class="stat-card c1"><div class="lbl">广告总曝光</div><div class="val"><%= compactNumber(views) %></div></div>
+  <div class="stat-card c2"><div class="lbl">广告总点击</div><div class="val"><%= compactNumber(clicks) %></div></div>
+  <div class="stat-card"><div class="lbl">广告位数量</div><div class="val" style="font-size:21px;"><%= ads.length %></div></div>
+  <div class="stat-card c3"><div class="lbl">在投广告</div><div class="val" style="font-size:21px;"><%= ads.filter(function (a) { return a.active !== false; }).length %></div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>广告列表</h3></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>名称</th><th>位置</th><th>方式</th><th>投放价</th><th>曝光</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody>
+          <% if (!ads.length) { %><tr><td colspan="7" class="empty">暂无广告</td></tr><% } %>
+          <% ads.forEach(function (a) { %>
+            <tr>
+              <td>
+                <b><%= a.name %></b>
+                <% if (a.text) { %><div class="muted small"><%= a.text %></div><% } %>
+                <% if (a.link) { %><div class="muted small mono" style="font-size:11.5px;"><%= a.link %></div><% } %>
+              </td>
+              <td class="small"><%= ({ home_top: '首页顶部', sidebar: '侧边栏', detail_top: '详情页顶部', float: '右下角悬浮' })[a.position] || a.position %></td>
+              <td><span class="badge <%= a.type === 'html' ? 'b-purple' : 'b-blue' %>"><%= a.type === 'html' ? '自定义代码' : '图片' %></span></td>
+              <td class="muted">¥<%= formatMoney(a.price) %></td>
+              <td class="muted small"><%= compactNumber(a.views || 0) %></td>
+              <td>
+                <% if (a.active !== false) { %><span class="badge b-green">投放中</span>
+                <% } else { %><span class="badge b-gray">已停用</span><% } %>
+              </td>
+              <td class="actions">
+                <button class="btn btn-outline btn-sm" type="button"
+                  onclick='fillAd(<%- JSON.stringify({ id: a.id, name: a.name, position: a.position, type: a.type, image: a.image || "", link: a.link || "", html: a.html || "", text: a.text || "", price: (a.price/100).toFixed(2), active: a.active !== false }).replace(/'/g, "&#39;") %>)'>编辑</button>
+                <form method="post" action="/admin/ads/<%= a.id %>/delete" style="display:inline;" data-confirm="确定删除广告「<%= a.name %>」吗？">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="btn btn-danger btn-sm" type="submit">删除</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3 id="adFormTitle">新增广告</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/ads/save" id="adForm">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="id" id="aId" value="">
+        <div class="form-group">
+          <label>广告名称 <span style="color:var(--danger);">*</span></label>
+          <input class="form-control" type="text" name="name" id="aName" placeholder="如：某安全厂商 Banner" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>投放位置</label>
+            <select class="form-control" name="position" id="aPosition">
+              <% positions.forEach(function (p) { %>
+                <option value="<%= p.key %>"><%= p.label %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>广告形式</label>
+            <select class="form-control" name="type" id="aType">
+              <option value="image">图片广告</option>
+              <option value="html">自定义代码</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>图片地址</label>
+          <div style="display:flex;gap:8px;">
+            <input class="form-control" type="text" name="image" id="aImage" placeholder="/uploads/images/banner.png">
+            <input type="file" accept="image/*" style="display:none;" id="aImageFile" onchange="uploadFile(this,'aImage')">
+            <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('aImageFile').click()">上传</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>跳转链接</label>
+          <input class="form-control" type="text" name="link" id="aLink" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>自定义代码（HTML / JS）</label>
+          <textarea class="form-control" name="html" id="aHtml" style="min-height:100px;font-family:Consolas,monospace;font-size:12.5px;" placeholder="粘贴广告联盟代码或自定义 HTML"></textarea>
+          <div class="hint">选择「自定义代码」时生效，可粘贴百度联盟/谷歌 AdSense 等代码</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>备注文字</label>
+            <input class="form-control" type="text" name="text" id="aText" placeholder="广告位招租">
+          </div>
+          <div class="form-group">
+            <label>投放价（元）</label>
+            <input class="form-control" type="text" name="price" id="aPrice" placeholder="300.00">
+          </div>
+        </div>
+        <label class="checkbox"><input type="checkbox" name="active" id="aActive" checked> 启用投放</label>
+        <div class="divider"></div>
+        <button class="btn btn-primary btn-block" type="submit">保存广告</button>
+        <button class="btn btn-outline btn-block" type="button" style="margin-top:8px;" onclick="resetAd()">清空表单</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-info">
+  <b>变现玩法：</b>
+  ① 直接售卖广告位（在「备注文字」写明「广告位招租」，前台会显示占位提示，方便招商）；
+  ② 接入广告联盟，把联盟代码粘贴到「自定义代码」；
+  ③ 悬浮广告建议慎用，过多会影响用户体验与搜索排名。
+</div>
+
+<script>
+function fillAd(a) {
+  document.getElementById('aId').value = a.id;
+  document.getElementById('aName').value = a.name;
+  document.getElementById('aPosition').value = a.position;
+  document.getElementById('aType').value = a.type;
+  document.getElementById('aImage').value = a.image || '';
+  document.getElementById('aLink').value = a.link || '';
+  document.getElementById('aHtml').value = a.html || '';
+  document.getElementById('aText').value = a.text || '';
+  document.getElementById('aPrice').value = a.price || '';
+  document.getElementById('aActive').checked = !!a.active;
+  document.getElementById('adFormTitle').textContent = '编辑广告：' + a.name;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function resetAd() {
+  document.getElementById('adForm').reset();
+  document.getElementById('aId').value = '';
+  document.getElementById('adFormTitle').textContent = '新增广告';
+}
+</script>
+
+<%- include('partials/foot') %>

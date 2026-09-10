@@ -1,0 +1,96 @@
+<%- include('partials/head') %>
+
+<div class="stat-cards">
+  <div class="stat-card c3">
+    <div class="lbl">累计收入</div>
+    <div class="val">¥<%= formatMoney(revenue) %></div>
+    <div class="sub">仅统计已支付订单</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">订单总数</div>
+    <div class="val" style="font-size:21px;"><%= pager.total %></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form class="filters" method="get" action="/admin/orders">
+      <div class="form-group">
+        <label>订单状态</label>
+        <select class="form-control" name="status">
+          <option value="">全部状态</option>
+          <option value="pending" <%= filter.status === 'pending' ? 'selected' : '' %>>待支付</option>
+          <option value="paid" <%= filter.status === 'paid' ? 'selected' : '' %>>已支付</option>
+          <option value="cancelled" <%= filter.status === 'cancelled' ? 'selected' : '' %>>已取消</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">🔍 筛选</button>
+      <a class="btn btn-outline" href="/admin/orders">重置</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>订单列表</h3></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>订单号</th><th>用户</th><th>内容</th><th>金额</th><th>状态</th><th>支付方式</th><th>创建时间</th><th style="width:220px;">操作</th></tr></thead>
+      <tbody>
+        <% if (!orders.length) { %><tr><td colspan="8" class="empty">暂无订单</td></tr><% } %>
+        <% orders.forEach(function (o) {
+            var u = users[o.userId];
+            var stMap = { paid: ['已支付', 'b-green'], pending: ['待支付', 'b-orange'], cancelled: ['已取消', 'b-gray'], refunded: ['已退款', 'b-gray'] };
+            var st = stMap[o.status] || ['未知', 'b-gray'];
+        %>
+          <tr>
+            <td class="mono" style="font-size:12.5px;"><%= o.orderNo %></td>
+            <td>
+              <% if (u) { %><b><%= u.nickname || u.username %></b><div class="muted small">@<%= u.username %></div>
+              <% } else { %><span class="muted">用户已删除</span><% } %>
+            </td>
+            <td class="small"><%= o.remark || '会员开通' %></td>
+            <td><b>¥<%= formatMoney(o.amount) %></b></td>
+            <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+            <td class="muted small"><%= o.payMethod === 'manual' ? '人工确认' : o.payMethod %></td>
+            <td class="muted small"><%= formatDate(o.createdAt, true) %></td>
+            <td class="actions">
+              <% if (o.status === 'pending') { %>
+                <form method="post" action="/admin/orders/<%= o.id %>/confirm" style="display:inline;" data-confirm="确认已收到款项？确认后将立即为用户开通会员">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <input type="hidden" name="tradeNo" value="MANUAL-<%= Date.now() %>">
+                  <button class="btn btn-success btn-sm" type="submit">✓ 确认收款</button>
+                </form>
+                <form method="post" action="/admin/orders/<%= o.id %>/cancel" style="display:inline;" data-confirm="确定取消该订单吗？">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="btn btn-outline btn-sm" type="submit">取消</button>
+                </form>
+              <% } %>
+              <form method="post" action="/admin/orders/<%= o.id %>/delete" style="display:inline;" data-confirm="确定删除该订单记录吗？">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button class="btn btn-danger btn-sm" type="submit">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% if (pager.pages > 1) { %>
+    <div class="pager">
+      <% if (pager.hasPrev) { %><a href="?status=<%= filter.status %>&page=<%= pager.page - 1 %>">上一页</a><% } %>
+      <% pager.range.forEach(function (n) { %>
+        <% if (n === '...') { %><span class="disabled">…</span>
+        <% } else if (n === pager.page) { %><span class="current"><%= n %></span>
+        <% } else { %><a href="?status=<%= filter.status %>&page=<%= n %>"><%= n %></a><% } %>
+      <% }); %>
+      <% if (pager.hasNext) { %><a href="?status=<%= filter.status %>&page=<%= pager.page + 1 %>">下一页</a><% } %>
+    </div>
+  <% } %>
+</div>
+
+<div class="alert alert-info">
+  <b>接单流程：</b>用户在前台下单 → 联系站长付款 → 你在本页点「确认收款」→ 系统自动为用户开通对应时长的会员并发送站内通知。
+  如需接入微信/支付宝自动回调，请参考 README 中的「接入真实支付」章节。
+</div>
+
+<%- include('partials/foot') %>

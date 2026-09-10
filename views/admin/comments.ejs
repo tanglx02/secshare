@@ -1,0 +1,38 @@
+<%- include('partials/head') %>
+
+<div class="card">
+  <div class="card-head"><h3>评论列表（<%= list.length %>）</h3></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>评论者</th><th>内容</th><th>所属资源</th><th>时间</th><th>IP</th><th>操作</th></tr></thead>
+      <tbody>
+        <% if (!list.length) { %><tr><td colspan="6" class="empty">暂无评论</td></tr><% } %>
+        <% list.forEach(function (c) { %>
+          <tr>
+            <td><b><%= c.author %></b></td>
+            <td style="max-width:420px;"><%= c.content %></td>
+            <td class="small">
+              <% if (c.post) { %><a href="/resource/<%= c.post.slug || c.post.id %>" target="_blank"><%= c.post.title %></a>
+              <% } else { %><span class="muted">资源已删除</span><% } %>
+            </td>
+            <td class="muted small"><%= formatDate(c.createdAt, true) %></td>
+            <td class="muted small mono"><%= c.ip || '—' %></td>
+            <td class="actions">
+              <form method="post" action="/admin/comments/<%= c.id %>/delete" style="display:inline;" data-confirm="确定删除该评论吗？">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button class="btn btn-danger btn-sm" type="submit">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="alert alert-info">
+  前台评论开关在「系统设置 → 内容与访问策略」中控制。当前状态：
+  <b><%= settings.commentsEnabled !== false ? '已开启' : '已关闭' %></b>
+</div>
+
+<%- include('partials/foot') %>

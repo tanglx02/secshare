@@ -1,0 +1,78 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="breadcrumb">
+    <a href="/">首页</a><span>/</span>
+    <% if (typeof currentCategory !== 'undefined' && currentCategory) { %>
+      <a href="/resources">全部资源</a><span>/</span><span><%= currentCategory.name %></span>
+    <% } else { %>
+      <span><%= pageTitle %></span>
+    <% } %>
+  </div>
+
+  <div class="layout">
+    <main>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-body" style="padding:16px 18px;">
+          <h1 style="font-size:20px;margin:0 0 6px;"><%= pageTitle %></h1>
+          <div class="muted small">
+            <% if (typeof currentCategory !== 'undefined' && currentCategory && currentCategory.description) { %>
+              <%= currentCategory.description %> ·
+            <% } %>
+            共 <b style="color:var(--primary);"><%= pager.total %></b> 个资源
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--border-2);padding-top:14px;">
+            <span class="muted small">排序：</span>
+            <a class="chip <%= currentSort === 'new' ? 'active' : '' %>" href="?<%= baseQuery.replace(/sort=[^&]*&?/, '') %>sort=new">最新</a>
+            <a class="chip <%= currentSort === 'hot' ? 'active' : '' %>" href="?<%= baseQuery.replace(/sort=[^&]*&?/, '') %>sort=hot">最热</a>
+            <a class="chip <%= currentSort === 'download' ? 'active' : '' %>" href="?<%= baseQuery.replace(/sort=[^&]*&?/, '') %>sort=download">下载最多</a>
+            <span style="margin-left:auto;display:flex;gap:6px;">
+              <% if (currentType === 'software') { %>
+                <a class="chip active" href="/resources?type=software">软件工具</a>
+                <a class="chip" href="/resources?type=doc">学习资料</a>
+              <% } else if (currentType === 'doc') { %>
+                <a class="chip" href="/resources?type=software">软件工具</a>
+                <a class="chip active" href="/resources?type=doc">学习资料</a>
+              <% } else { %>
+                <a class="chip <%= !currentType && !keyword && !(currentCategory) && !(currentTag) ? 'active' : '' %>" href="/resources">全部</a>
+                <a class="chip" href="/resources?type=software">软件工具</a>
+                <a class="chip" href="/resources?type=doc">学习资料</a>
+              <% } %>
+            </span>
+          </div>
+
+          <% if (tags && tags.length) { %>
+          <div style="margin-top:12px;border-top:1px dashed var(--border-2);padding-top:12px;">
+            <span class="muted small">热门标签：</span>
+            <% tags.slice(0, 14).forEach(function (t) { %>
+              <a class="chip <%= (typeof currentTag !== 'undefined' && currentTag && currentTag.id === t.id) ? 'active' : '' %>" href="/tag/<%= t.slug %>"><%= t.name %></a>
+            <% }); %>
+          </div>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (!posts.length) { %>
+        <div class="card"><div class="card-body" style="text-align:center;padding:56px 20px;">
+          <div style="font-size:40px;margin-bottom:10px;">🔍</div>
+          <h3 style="font-size:16px;">没有找到相关资源</h3>
+          <p class="muted" style="font-size:13.5px;">换个关键词试试，或浏览
+            <a href="/resources">全部资源</a>
+          </p>
+        </div></div>
+      <% } else { %>
+        <div class="card-grid">
+          <% posts.forEach(function (post) { %>
+            <%- include('partials/card', { post: post }) %>
+          <% }); %>
+        </div>
+        <%- include('partials/pagination', { pager: pager, baseQuery: baseQuery }) %>
+      <% } %>
+    </main>
+
+    <%- include('partials/sidebar') %>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

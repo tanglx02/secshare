@@ -1,0 +1,12 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="status-page">
+    <div class="code"><%= typeof status !== 'undefined' ? status : 500 %></div>
+    <h2>出错了</h2>
+    <p><%= typeof message !== 'undefined' && message ? message : '服务器开小差了，请稍后重试' %></p>
+    <a class="btn btn-primary" href="/">返回首页</a>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

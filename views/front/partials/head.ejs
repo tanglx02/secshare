@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= typeof title !== 'undefined' ? title : settings.siteName %></title>
+<meta name="description" content="<%= typeof desc !== 'undefined' && desc ? desc : settings.siteDescription %>">
+<meta name="keywords" content="<%= typeof keywords !== 'undefined' && keywords ? keywords : settings.siteKeywords %>">
+<meta name="renderer" content="webkit">
+<meta property="og:site_name" content="<%= settings.siteName %>">
+<meta property="og:title" content="<%= typeof pageTitle !== 'undefined' && pageTitle ? pageTitle : settings.siteName %>">
+<meta property="og:description" content="<%= typeof desc !== 'undefined' && desc ? desc : settings.siteDescription %>">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="<%= settings.siteName %> RSS" href="/rss.xml">
+<link rel="stylesheet" href="/css/main.css">
+<script defer src="/js/main.js"></script>
+<% if (settings.statsCode) { %><%- settings.statsCode %><% } %>
+</head>
+<body>
+<div class="topbar">
+  <div class="container">
+    <div class="topbar-left">
+      <span>🔒 <%= settings.siteSubtitle || '专注网络安全资源分享' %></span>
+      <a href="/disclaimer">免责声明</a>
+      <a href="/contact">联系站长</a>
+    </div>
+    <div class="topbar-right">
+      <a href="/resources">全部资源</a>
+      <a href="/vip">开通会员</a>
+      <a href="/rss.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="container">
+    <a class="logo" href="/">
+      <% if (settings.logoImage) { %>
+        <img src="<%= settings.logoImage %>" alt="<%= settings.siteName %>">
+      <% } else { %>
+        <span class="logo-mark">🛡</span>
+        <span><%= settings.logoText || settings.siteName %></span>
+      <% } %>
+    </a>
+
+    <nav class="nav" id="mainNav">
+      <a href="/" class="<%= path === '/' ? 'active' : '' %>">首页</a>
+      <a href="/resources?type=software" class="<%= query.type === 'software' ? 'active' : '' %>">软件工具</a>
+      <a href="/resources?type=doc" class="<%= query.type === 'doc' ? 'active' : '' %>">学习资料</a>
+      <a href="/resources" class="<%= path === '/resources' && !query.type ? 'active' : '' %>">全部资源</a>
+      <a href="/vip" class="<%= path === '/vip' ? 'active' : '' %>">会员中心</a>
+    </nav>
+
+    <div class="header-actions">
+      <form class="search-box" action="/search" method="get">
+        <input type="search" name="q" placeholder="搜索工具 / 资料…" value="<%= typeof keyword !== 'undefined' ? keyword : '' %>" aria-label="搜索">
+        <button type="submit" aria-label="提交搜索">🔍</button>
+      </form>
+      <% if (user) { %>
+        <a class="btn btn-outline btn-sm" href="/user">👤 <%= user.nickname || user.username %></a>
+        <% if (user.role === 'admin') { %><a class="btn btn-dark btn-sm" href="/admin">后台</a><% } %>
+      <% } else { %>
+        <a class="btn btn-outline btn-sm" href="/login">登录</a>
+        <a class="btn btn-primary btn-sm" href="/register">注册</a>
+      <% } %>
+      <button class="nav-toggle" id="navToggle" aria-label="菜单">☰</button>
+    </div>
+  </div>
+</header>

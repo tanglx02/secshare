@@ -1,0 +1,15 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="breadcrumb"><a href="/">首页</a><span>/</span><span><%= pageTitle %></span></div>
+  <div style="max-width:900px;margin:18px auto 0;">
+    <div class="card">
+      <div class="card-head"><h3><%= pageTitle %></h3></div>
+      <div class="card-body">
+        <div class="article"><%- contentHtml %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

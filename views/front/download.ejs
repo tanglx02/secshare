@@ -1,0 +1,67 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="breadcrumb">
+    <a href="/">首页</a><span>/</span>
+    <a href="<%= postUrl(raw) %>"><%= raw.title %></a><span>/</span>
+    <span>下载</span>
+  </div>
+
+  <div style="max-width:820px;margin:22px auto 0;">
+    <div class="card">
+      <div class="card-head"><h3>获取下载地址</h3></div>
+      <div class="card-body">
+        <div class="alert alert-success" style="margin-bottom:18px;">
+          ✅ 权限校验通过，感谢您的支持！请勿将本站资源用于任何违法用途。
+        </div>
+
+        <h4 style="font-size:15.5px;margin-bottom:12px;"><%= raw.title %></h4>
+
+        <% if (!lines.length) { %>
+          <div class="alert alert-warn">该资源暂未配置下载地址，可能正在整理中，请联系站长补充。</div>
+        <% } else { %>
+          <% lines.forEach(function (l, i) { %>
+            <div class="dl-line">
+              <span class="name"><%= l.name %></span>
+              <span class="url"><%= l.url %></span>
+              <a class="btn btn-primary btn-sm" href="<%= l.url %>" target="_blank" rel="noopener nofollow" onclick="this.innerHTML='打开中…'">⤓ 前往下载</a>
+            </div>
+            <% if (l.code) { %>
+              <div class="dl-code">提取码：<b><%= l.code %></b></div>
+            <% } %>
+          <% }); %>
+        <% } %>
+
+        <% if (raw.unzipPassword) { %>
+          <div class="dl-code">解压密码：<b><%= raw.unzipPassword %></b></div>
+        <% } %>
+
+        <% if (raw.fileHash) { %>
+          <div class="alert alert-info" style="margin-top:14px;">
+            <b>文件校验值（SHA256 / MD5）</b><br>
+            <span style="font-family:Consolas,monospace;font-size:12.5px;word-break:break-all;"><%= raw.fileHash %></span>
+          </div>
+        <% } %>
+
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border-2);font-size:12.5px;color:var(--text-3);line-height:1.9;">
+          <b style="color:var(--text-2);">下载提示</b>
+          <div>· 部分资源需要解压密码，请留意上方提示</div>
+          <div>· 网盘链接失效请通过「联系我们」页面反馈，我们会尽快补链</div>
+          <div>· 遇到问题可加入交流群，或在资源页面留言</div>
+        </div>
+
+        <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+          <a class="btn btn-outline btn-sm" href="<%= postUrl(raw) %>">← 返回资源页</a>
+          <a class="btn btn-outline btn-sm" href="/resources">浏览更多资源</a>
+          <% if (setting('vipEnabled') !== false && !isVip) { %>
+            <a class="btn btn-primary btn-sm" href="/vip">👑 开通会员，无限下载</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-placeholder" style="margin-top:18px;"><b>广告位招租</b>下载页通栏 · 曝光精准</div>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

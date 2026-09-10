@@ -1,0 +1,132 @@
+<%- include('partials/head') %>
+
+<% if (editUser) { %>
+<div class="card">
+  <div class="card-head"><h3>编辑用户：<%= editUser.username %></h3><a class="btn btn-outline btn-sm" href="/admin/users">关闭</a></div>
+  <div class="card-body">
+    <form method="post" action="/admin/users/save">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="id" value="<%= editUser.id %>">
+      <div class="form-row-4">
+        <div class="form-group">
+          <label>昵称</label>
+          <input class="form-control" type="text" name="nickname" value="<%= editUser.nickname || '' %>">
+        </div>
+        <div class="form-group">
+          <label>邮箱</label>
+          <input class="form-control" type="email" name="email" value="<%= editUser.email || '' %>">
+        </div>
+        <div class="form-group">
+          <label>积分</label>
+          <input class="form-control" type="number" name="points" value="<%= editUser.points || 0 %>">
+        </div>
+        <div class="form-group">
+          <label>状态</label>
+          <select class="form-control" name="status">
+            <option value="active" <%= editUser.status !== 'banned' ? 'selected' : '' %>>正常</option>
+            <option value="banned" <%= editUser.status === 'banned' ? 'selected' : '' %>>封禁</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>会员等级（0 = 非会员）</label>
+          <input class="form-control" type="number" name="vipLevel" value="<%= editUser.vipLevel || 0 %>" min="0">
+        </div>
+        <div class="form-group">
+          <label>会员到期时间</label>
+          <input class="form-control" type="date" name="vipExpireAt" value="<%= editUser.vipExpireAt ? String(editUser.vipExpireAt).slice(0, 10) : '' %>">
+        </div>
+        <div class="form-group">
+          <label>重置密码（留空不改）</label>
+          <input class="form-control" type="text" name="newPassword" placeholder="新密码">
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">保存修改</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<div class="card">
+  <div class="card-body">
+    <form class="filters" method="get" action="/admin/users">
+      <div class="form-group">
+        <label>搜索用户</label>
+        <input class="form-control" type="text" name="q" value="<%= filter.q %>" placeholder="用户名 / 邮箱">
+      </div>
+      <div class="form-group">
+        <label>筛选</label>
+        <select class="form-control" name="vip">
+          <option value="">全部用户</option>
+          <option value="1" <%= filter.vip === '1' ? 'selected' : '' %>>仅会员</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">🔍 查询</button>
+      <a class="btn btn-outline" href="/admin/users">重置</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>用户列表（<%= pager.total %>）</h3></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>用户</th><th>邮箱</th><th>身份</th><th>会员</th><th>积分</th><th>状态</th><th>注册时间</th><th>最近登录</th><th style="width:210px;">操作</th></tr>
+      </thead>
+      <tbody>
+        <% if (!users.length) { %><tr><td colspan="9" class="empty">暂无用户</td></tr><% } %>
+        <% users.forEach(function (u) { %>
+          <tr>
+            <td>
+              <b><%= u.nickname || u.username %></b>
+              <div class="muted small">@<%= u.username %></div>
+            </td>
+            <td class="muted small"><%= u.email || '—' %></td>
+            <td><span class="badge <%= u.role === 'admin' ? 'b-purple' : 'b-gray' %>"><%= u.role === 'admin' ? '管理员' : '注册用户' %></span></td>
+            <td>
+              <% if (isVip(u)) { %>
+                <span class="badge b-yellow">VIP <%= u.vipLevel %></span>
+                <div class="muted small"><%= u.vipExpireAt ? formatDate(u.vipExpireAt) + ' 到期' : '永久' %></div>
+              <% } else { %><span class="muted small">普通</span><% } %>
+            </td>
+            <td><%= u.points || 0 %></td>
+            <td>
+              <% if (u.status === 'banned') { %><span class="badge b-red">已封禁</span>
+              <% } else { %><span class="badge b-green">正常</span><% } %>
+            </td>
+            <td class="muted small"><%= formatDate(u.createdAt) %></td>
+            <td class="muted small"><%= u.lastLoginAt ? timeAgo(u.lastLoginAt) : '—' %></td>
+            <td class="actions">
+              <a class="btn btn-outline btn-sm" href="/admin/users?edit=<%= u.id %>">编辑</a>
+              <form method="post" action="/admin/users/<%= u.id %>/grant-vip" style="display:inline;">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <input type="hidden" name="days" value="30">
+                <button class="btn btn-warn btn-sm" type="submit" <%= isVip(u) ? 'disabled' : '' %>>送30天</button>
+              </form>
+              <form method="post" action="/admin/users/<%= u.id %>/toggle-ban" style="display:inline;" data-confirm="确定切换该用户的封禁状态吗？">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button class="btn btn-danger btn-sm" type="submit"><%= u.status === 'banned' ? '解封' : '封禁' %></button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% if (pager.pages > 1) { %>
+    <div class="pager">
+      <% var uq = 'q=' + encodeURIComponent(filter.q) + '&vip=' + filter.vip + '&'; %>
+      <% if (pager.hasPrev) { %><a href="?<%= uq %>page=<%= pager.page - 1 %>">上一页</a><% } %>
+      <% pager.range.forEach(function (n) { %>
+        <% if (n === '...') { %><span class="disabled">…</span>
+        <% } else if (n === pager.page) { %><span class="current"><%= n %></span>
+        <% } else { %><a href="?<%= uq %>page=<%= n %>"><%= n %></a><% } %>
+      <% }); %>
+      <% if (pager.hasNext) { %><a href="?<%= uq %>page=<%= pager.page + 1 %>">下一页</a><% } %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

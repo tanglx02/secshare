@@ -1,0 +1,96 @@
+<%- include('partials/head') %>
+
+<div class="container">
+  <div class="breadcrumb">
+    <a href="/">首页</a><span>/</span><a href="/user?tab=orders">我的订单</a><span>/</span><span><%= order.orderNo %></span>
+  </div>
+
+  <div style="max-width:640px;margin:22px auto 0;">
+    <div class="card">
+      <div class="card-head"><h3>订单详情</h3></div>
+      <div class="card-body">
+        <%
+          var statusMap = { paid: ['已支付', 'tag-free'], pending: ['待支付', 'tag-points'], cancelled: ['已取消', 'tag-gray'], refunded: ['已退款', 'tag-gray'] };
+          var st = statusMap[order.status] || ['未知', 'tag-gray'];
+        %>
+        <div style="text-align:center;padding:14px 0 20px;">
+          <div style="font-size:44px;margin-bottom:8px;"><%= order.status === 'paid' ? '✅' : (order.status === 'cancelled' ? '🚫' : '⏳') %></div>
+          <h2 style="font-size:18px;margin-bottom:6px;"><%= st[0] %></h2>
+          <p class="muted small">
+            <%= order.status === 'paid' ? '会员已开通，感谢您的支持！'
+                : (order.status === 'cancelled' ? '订单已取消' : '请按下方说明完成付款，付款后联系站长确认') %>
+          </p>
+        </div>
+
+        <table class="info-table">
+          <tr><th>订单号</th><td style="font-family:Consolas,monospace;"><%= order.orderNo %></td></tr>
+          <tr><th>商品</th><td><%= order.remark || '会员开通' %></td></tr>
+          <tr><th>金额</th><td style="color:var(--danger);font-weight:700;font-size:16px;">¥<%= helpers.formatMoney(order.amount) %></td></tr>
+          <tr><th>状态</th><td><span class="badge <%= st[1] %>"><%= st[0] %></span></td></tr>
+          <% if (plan) { %>
+          <tr><th>有效期</th><td><%= plan.days >= 36500 ? '永久' : plan.days + ' 天' %></td></tr>
+          <% } %>
+          <tr><th>创建时间</th><td><%= helpers.formatDate(order.createdAt, true) %></td></tr>
+          <% if (order.paidAt) { %><tr><th>支付时间</th><td><%= helpers.formatDate(order.paidAt, true) %></td></tr><% } %>
+          <% if (order.tradeNo) { %><tr><th>交易号</th><td style="font-family:Consolas,monospace;font-size:12.5px;"><%= order.tradeNo %></td></tr><% } %>
+        </table>
+
+        <% if (order.status === 'pending') { %>
+          <% if (payReady) { %>
+            <div style="margin-top:16px;padding:22px 18px;text-align:center;background:linear-gradient(135deg,#f0f9ff,#eff6ff);border:1px solid #dbeafe;border-radius:12px;">
+              <div style="font-size:13.5px;color:var(--text-2);margin-bottom:14px;">
+                选择支付方式完成付款，支付成功后系统会自动开通会员
+              </div>
+              <a class="btn btn-primary btn-lg" href="/pay/<%= order.orderNo %>">
+                支付宝支付 ¥<%= helpers.formatMoney(order.amount) %>
+              </a>
+              <div class="muted small" style="margin-top:10px;">
+                <% if (payType === 'qr') { %>支持支付宝扫码支付，付款后自动核验<% } else { %>跳转支付宝官方收银台，支持扫码与登录支付<% } %>
+                <% if (sandbox) { %><br><span style="color:var(--warn);">当前为沙箱环境，请使用沙箱买家账号付款</span><% } %>
+              </div>
+            </div>
+
+            <details style="margin-top:14px;">
+              <summary class="muted small" style="cursor:pointer;">支付遇到问题？查看人工付款方式</summary>
+              <div class="alert alert-info" style="margin-top:10px;">
+                1. 联系站长获取收款码（微信 / 支付宝）<br>
+                2. 付款时请备注订单号 <b><%= order.orderNo %></b><br>
+                3. 付款后告知站长，后台确认后自动开通会员
+              </div>
+            </details>
+
+            <% if (setting('payMock') === true) { %>
+              <form action="/order/<%= order.orderNo %>/pay" method="post" style="margin-top:12px;">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button class="btn btn-warn btn-sm" type="submit">模拟支付成功（仅测试环境使用）</button>
+              </form>
+            <% } %>
+          <% } else { %>
+            <div class="alert alert-info" style="margin-top:16px;">
+              <b>付款方式</b><br>
+              1. 请联系站长获取收款码（微信 / 支付宝）<br>
+              2. 付款时请备注订单号 <b><%= order.orderNo %></b><br>
+              3. 付款后告知站长，后台确认后自动开通会员
+            </div>
+            <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+              <a class="btn btn-primary" href="/contact">联系站长付款</a>
+              <% if (setting('payMock') === true) { %>
+                <form action="/order/<%= order.orderNo %>/pay" method="post" style="display:inline;">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="btn btn-warn" type="submit">模拟支付（测试用）</button>
+                </form>
+              <% } %>
+            </div>
+          <% } %>
+        <% } else if (order.status === 'paid') { %>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a class="btn btn-primary" href="/resources">去下载资源</a>
+            <a class="btn btn-outline" href="/user">我的会员</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

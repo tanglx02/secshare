@@ -1,0 +1,26 @@
+<%
+/* 资源卡片：需要 post / accessLabel / postUrl */
+var lv = accessLabel(post.accessLevel || 'free');
+%>
+<article class="res-card">
+  <div class="thumb">
+    <% if (post.top) { %><span class="ribbon top">置顶</span>
+    <% } else if (post.featured) { %><span class="ribbon">推荐</span><% } %>
+    <% if (post.cover) { %>
+      <img src="<%= post.cover %>" alt="<%= post.title %>" loading="lazy">
+    <% } else { %>
+      <span><%= post.categoryIcon || '📦' %></span>
+    <% } %>
+  </div>
+  <div class="body">
+    <h3><a href="<%= post.url || postUrl(post) %>"><%= post.title %></a></h3>
+    <p class="desc"><%= post.summaryText %></p>
+    <div class="meta">
+      <div class="left">
+        <span class="badge <%= lv.cls %>"><%= lv.text %></span>
+        <span class="muted"><%= post.categoryName %></span>
+      </div>
+      <span class="muted nowrap">⬇ <%= post.downloadsText %></span>
+    </div>
+  </div>
+</article>

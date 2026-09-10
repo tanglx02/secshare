@@ -1,0 +1,114 @@
+<%
+/* 通用侧边栏：分类、热门下载、标签云、站点统计、广告位 */
+var sideHot = services.content.queryPosts({ perPage: 8, sort: 'download' }).list.map(decorate);
+var sideNew = services.content.queryPosts({ perPage: 5, sort: 'new' }).list.map(decorate);
+var sideAd = settings.adsEnabled !== false ? services.content.adFor('sidebar') : null;
+var allPosts = services.content.queryPosts({ perPage: 1, sort: 'new' }).pager.total;
+var totalDl = services.content.queryPosts({ perPage: 9999, sort: 'new' }).list.reduce(function (a, p) { return a + (p.downloads || 0); }, 0);
+%>
+<aside class="sidebar">
+  <% if (settings.adsEnabled !== false && sideAd && ((sideAd.type === 'html' && sideAd.html) || sideAd.image)) { %>
+    <div class="ad-box">
+      <% if (sideAd.type === 'html') { %><%- sideAd.html %><% } else { %>
+        <a href="/ad/<%= sideAd.id %>" target="_blank" rel="noopener nofollow"><img src="<%= sideAd.image %>" alt="<%= sideAd.name %>"></a>
+      <% } %>
+    </div>
+  <% } else if (settings.adsEnabled !== false) { %>
+    <div class="ad-placeholder"><b>广告位招租</b>侧边栏 300×250 · 联系站长投放</div>
+  <% } %>
+
+  <div class="side-card">
+    <div class="head"><span class="ico">📂</span>资源分类</div>
+    <div class="body" style="padding:8px;">
+      <div class="cat-list">
+        <% (categories || []).forEach(function (c) { %>
+          <a href="/category/<%= c.slug %>" class="<%= (typeof currentCategory !== 'undefined' && currentCategory && currentCategory.id === c.id) ? 'active' : '' %>">
+            <span class="ico"><%= c.icon || '📦' %></span>
+            <span><%= c.name %></span>
+            <span class="cnt"><%= services.content.queryPosts({ categoryId: c.id, perPage: 1 }).pager.total %></span>
+          </a>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-card">
+    <div class="head"><span class="ico">🔥</span>热门下载榜</div>
+    <div class="body">
+      <ul class="rank-list">
+        <% sideHot.forEach(function (p, i) { %>
+          <li>
+            <span class="num"><%= i + 1 %></span>
+            <span class="t">
+              <a href="<%= p.url %>" title="<%= p.title %>"><%= p.title %></a>
+              <span class="sub">⬇ <%= p.downloadsText %> · 👁 <%= p.viewsText %></span>
+            </span>
+          </li>
+        <% }); %>
+      </ul>
+    </div>
+  </div>
+
+  <div class="side-card">
+    <div class="head"><span class="ico">🆕</span>最新上架</div>
+    <div class="body">
+      <ul class="rank-list">
+        <% sideNew.forEach(function (p, i) { %>
+          <li>
+            <span class="num"><%= i + 1 %></span>
+            <span class="t">
+              <a href="<%= p.url %>" title="<%= p.title %>"><%= p.title %></a>
+              <span class="sub"><%= p.dateText %></span>
+            </span>
+          </li>
+        <% }); %>
+      </ul>
+    </div>
+  </div>
+
+  <div class="side-card">
+    <div class="head"><span class="ico">📊</span>站点统计</div>
+    <div class="body">
+      <div class="stat-grid">
+        <div class="stat-item"><b><%= helpers.compactNumber(allPosts) %></b><span>资源总数</span></div>
+        <div class="stat-item"><b><%= helpers.compactNumber(totalDl) %></b><span>总下载量</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-card">
+    <div class="head"><span class="ico">🏷️</span>热门标签</div>
+    <div class="body">
+      <% (tags || []).forEach(function (t) { %>
+        <a class="chip" href="/tag/<%= t.slug %>"><%= t.name %></a>
+      <% }); %>
+    </div>
+  </div>
+
+  <% if (announcements && announcements.length) { %>
+  <div class="side-card">
+    <div class="head"><span class="ico">📢</span>站内公告</div>
+    <div class="body">
+      <% announcements.forEach(function (a) { %>
+        <div style="padding:9px 0;border-bottom:1px dashed var(--border-2);">
+          <div style="font-weight:600;font-size:13.5px;margin-bottom:3px;">
+            <% if (a.pinned) { %><span class="badge tag-paid" style="margin-right:4px;">置顶</span><% } %><%= a.title %>
+          </div>
+          <div class="muted small"><%= a.content %></div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (settings.vipEnabled !== false) { %>
+  <div class="side-card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border:0;">
+    <div class="body" style="color:#fff;text-align:center;">
+      <div style="font-size:30px;margin-bottom:6px;">👑</div>
+      <div style="font-weight:600;font-size:15px;margin-bottom:4px;color:#fff;">开通会员</div>
+      <div style="font-size:12.5px;color:#a5f3fc;margin-bottom:14px;">解锁全站 VIP 资源无限下载</div>
+      <a class="btn btn-primary btn-sm" href="/vip" style="background:#fff;color:#1e3a8a;">立即查看特权</a>
+    </div>
+  </div>
+  <% } %>
+</aside>

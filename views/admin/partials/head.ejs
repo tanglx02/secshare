@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= typeof layoutTitle !== 'undefined' ? layoutTitle : '管理后台' %> - <%= siteName %></title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+  <aside class="side">
+    <div class="brand">
+      <span class="mark">🛡</span>
+      <span><%= siteName %></span>
+    </div>
+    <nav>
+      <div class="group">内容运营</div>
+      <a href="/admin" class="<%= activeMenu === 'dashboard' ? 'active' : '' %>"><span class="ico">📊</span><span>仪表盘</span></a>
+      <a href="/admin/posts" class="<%= activeMenu === 'posts' ? 'active' : '' %>"><span class="ico">📦</span><span>资源管理</span></a>
+      <a href="/admin/categories" class="<%= activeMenu === 'categories' ? 'active' : '' %>"><span class="ico">📂</span><span>分类管理</span></a>
+      <a href="/admin/tags" class="<%= activeMenu === 'tags' ? 'active' : '' %>"><span class="ico">🏷️</span><span>标签管理</span></a>
+      <a href="/admin/comments" class="<%= activeMenu === 'comments' ? 'active' : '' %>"><span class="ico">💬</span><span>评论管理</span></a>
+      <a href="/admin/announcements" class="<%= activeMenu === 'announcements' ? 'active' : '' %>"><span class="ico">📢</span><span>公告管理</span></a>
+
+      <div class="group">用户与变现</div>
+      <a href="/admin/users" class="<%= activeMenu === 'users' ? 'active' : '' %>"><span class="ico">👥</span><span>用户管理</span></a>
+      <a href="/admin/orders" class="<%= activeMenu === 'orders' ? 'active' : '' %>"><span class="ico">🧾</span><span>订单管理</span></a>
+      <a href="/admin/plans" class="<%= activeMenu === 'plans' ? 'active' : '' %>"><span class="ico">👑</span><span>会员套餐</span></a>
+      <a href="/admin/payment" class="<%= activeMenu === 'payment' ? 'active' : '' %>"><span class="ico">💳</span><span>支付设置</span></a>
+      <a href="/admin/ads" class="<%= activeMenu === 'ads' ? 'active' : '' %>"><span class="ico">📈</span><span>广告管理</span></a>
+      <a href="/admin/links" class="<%= activeMenu === 'links' ? 'active' : '' %>"><span class="ico">🔗</span><span>友情链接</span></a>
+
+      <div class="group">系统</div>
+      <a href="/admin/stats" class="<%= activeMenu === 'stats' ? 'active' : '' %>"><span class="ico">📉</span><span>数据统计</span></a>
+      <a href="/admin/backup" class="<%= activeMenu === 'backup' ? 'active' : '' %>"><span class="ico">💾</span><span>数据备份</span></a>
+      <a href="/admin/settings" class="<%= activeMenu === 'settings' ? 'active' : '' %>"><span class="ico">⚙️</span><span>系统设置</span></a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1><%= typeof layoutTitle !== 'undefined' ? layoutTitle : '管理后台' %></h1>
+      <div class="right">
+        <a href="/" target="_blank">🌐 查看前台</a>
+        <span>|</span>
+        <span>👤 <%= admin.nickname || admin.username %></span>
+        <a class="btn btn-outline btn-sm" href="/admin/logout">退出</a>
+      </div>
+    </header>
+    <div class="content">

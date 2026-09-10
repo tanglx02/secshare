@@ -1,0 +1,122 @@
+<%- include('partials/head') %>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>会员套餐（<%= plans.length %>）</h3></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>名称</th><th>价格</th><th>原价</th><th>时长</th><th>等级</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody>
+          <% if (!plans.length) { %><tr><td colspan="8" class="empty">暂无套餐</td></tr><% } %>
+          <% plans.forEach(function (p) { %>
+            <tr>
+              <td><b><%= p.name %></b><% if (p.recommend) { %> <span class="badge b-blue">推荐</span><% } %></td>
+              <td><b style="color:var(--danger);">¥<%= formatMoney(p.price) %></b></td>
+              <td class="muted" style="text-decoration:line-through;">¥<%= formatMoney(p.originalPrice) %></td>
+              <td class="muted small"><%= p.days >= 36500 ? '永久' : p.days + ' 天' %></td>
+              <td class="muted">VIP <%= p.level %></td>
+              <td class="muted"><%= p.sort ?? 100 %></td>
+              <td>
+                <% if (p.active !== false) { %><span class="badge b-green">上架</span>
+                <% } else { %><span class="badge b-gray">下架</span><% } %>
+              </td>
+              <td class="actions">
+                <button class="btn btn-outline btn-sm" type="button"
+                  onclick='fillPlan(<%- JSON.stringify({ id: p.id, name: p.name, days: p.days, price: (p.price/100).toFixed(2), originalPrice: (p.originalPrice/100).toFixed(2), level: p.level, sort: p.sort, badge: p.badge || "", features: (p.features||[]).join("\n"), active: p.active !== false, recommend: !!p.recommend }).replace(/'/g, "&#39;") %>)'>编辑</button>
+                <form method="post" action="/admin/plans/<%= p.id %>/delete" style="display:inline;" data-confirm="确定删除套餐「<%= p.name %>」吗？">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="btn btn-danger btn-sm" type="submit">删除</button>
+                </form>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="8" class="muted small" style="padding-top:0;padding-bottom:12px;background:#fafbfc;">
+                权益：<%= (p.features || []).join(' · ') || '未设置' %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3 id="planFormTitle">新增套餐</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/plans/save" id="planForm">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="id" id="pId" value="">
+        <div class="form-group">
+          <label>套餐名称 <span style="color:var(--danger);">*</span></label>
+          <input class="form-control" type="text" name="name" id="pName" placeholder="如：年度会员" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>售价（元）</label>
+            <input class="form-control" type="text" name="price" id="pPrice" placeholder="99.00" required>
+          </div>
+          <div class="form-group">
+            <label>原价（元）</label>
+            <input class="form-control" type="text" name="originalPrice" id="pOrigin" placeholder="199.00">
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>时长（天）</label>
+            <input class="form-control" type="number" name="days" id="pDays" value="30" min="1">
+            <div class="hint">永久填 36500</div>
+          </div>
+          <div class="form-group">
+            <label>等级</label>
+            <input class="form-control" type="number" name="level" id="pLevel" value="1" min="1">
+          </div>
+          <div class="form-group">
+            <label>排序</label>
+            <input class="form-control" type="number" name="sort" id="pSort" value="100">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>权益列表（每行一条）</label>
+          <textarea class="form-control" name="features" id="pFeatures" placeholder="全站 VIP 资源无限下载&#10;高速直链下载通道" style="min-height:110px;"></textarea>
+        </div>
+        <div class="form-group">
+          <label>角标文字</label>
+          <input class="form-control" type="text" name="badge" id="pBadge" placeholder="如：限时特惠">
+        </div>
+        <label class="checkbox"><input type="checkbox" name="active" id="pActive" checked> 上架销售</label>
+        <label class="checkbox"><input type="checkbox" name="recommend" id="pRecommend"> 标记为推荐</label>
+        <div class="divider"></div>
+        <button class="btn btn-primary btn-block" type="submit">保存套餐</button>
+        <button class="btn btn-outline btn-block" type="button" style="margin-top:8px;" onclick="resetPlan()">清空表单</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillPlan(p) {
+  document.getElementById('pId').value = p.id;
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pPrice').value = p.price;
+  document.getElementById('pOrigin').value = p.originalPrice;
+  document.getElementById('pDays').value = p.days;
+  document.getElementById('pLevel').value = p.level;
+  document.getElementById('pSort').value = p.sort;
+  document.getElementById('pBadge').value = p.badge || '';
+  document.getElementById('pFeatures').value = p.features || '';
+  document.getElementById('pActive').checked = !!p.active;
+  document.getElementById('pRecommend').checked = !!p.recommend;
+  document.getElementById('planFormTitle').textContent = '编辑套餐：' + p.name;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function resetPlan() {
+  document.getElementById('planForm').reset();
+  document.getElementById('pId').value = '';
+  document.getElementById('pDays').value = 30;
+  document.getElementById('pLevel').value = 1;
+  document.getElementById('pSort').value = 100;
+  document.getElementById('planFormTitle').textContent = '新增套餐';
+}
+</script>
+
+<%- include('partials/foot') %>

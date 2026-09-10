@@ -1,0 +1,88 @@
+<%- include('partials/head') %>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>分类列表（<%= list.length %>）</h3></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>图标</th><th>名称</th><th>别名</th><th>资源数</th><th>排序</th><th>说明</th><th>操作</th></tr></thead>
+        <tbody>
+          <% if (!list.length) { %><tr><td colspan="7" class="empty">暂无分类</td></tr><% } %>
+          <% list.forEach(function (c) { %>
+            <tr>
+              <td style="font-size:18px;"><%= c.icon || '📦' %></td>
+              <td><b><%= c.name %></b></td>
+              <td class="mono muted small"><%= c.slug %></td>
+              <td><%= counts[c.id] || 0 %></td>
+              <td class="muted"><%= c.sort ?? 100 %></td>
+              <td class="muted small" style="max-width:200px;"><%= c.description || '—' %></td>
+              <td class="actions">
+                <button class="btn btn-outline btn-sm" type="button"
+                        onclick="fillCat(<%= JSON.stringify({ id: c.id, name: c.name, slug: c.slug, icon: c.icon, sort: c.sort, description: c.description || '' }).replace(/"/g, '&quot;') %>)">编辑</button>
+                <form method="post" action="/admin/categories/<%= c.id %>/delete" style="display:inline;" data-confirm="确定删除该分类吗？该分类下的资源将变为未分类">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="btn btn-danger btn-sm" type="submit">删除</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3 id="formTitle">新增分类</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/categories/save" id="catForm">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="id" id="catId" value="">
+        <div class="form-group">
+          <label>分类名称 <span style="color:var(--danger);">*</span></label>
+          <input class="form-control" type="text" name="name" id="catName" placeholder="如：渗透测试工具" required>
+        </div>
+        <div class="form-group">
+          <label>别名（slug）</label>
+          <input class="form-control" type="text" name="slug" id="catSlug" placeholder="penetration">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>图标（emoji）</label>
+            <input class="form-control" type="text" name="icon" id="catIcon" value="📦" maxlength="4">
+          </div>
+          <div class="form-group">
+            <label>排序</label>
+            <input class="form-control" type="number" name="sort" id="catSort" value="100">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>分类说明</label>
+          <textarea class="form-control" name="description" id="catDesc" style="min-height:70px;"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">保存分类</button>
+        <button class="btn btn-outline btn-block" type="button" style="margin-top:8px;" onclick="resetCat()">清空表单</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillCat(c) {
+  document.getElementById('catId').value = c.id;
+  document.getElementById('catName').value = c.name;
+  document.getElementById('catSlug').value = c.slug || '';
+  document.getElementById('catIcon').value = c.icon || '';
+  document.getElementById('catSort').value = c.sort ?? 100;
+  document.getElementById('catDesc').value = c.description || '';
+  document.getElementById('formTitle').textContent = '编辑分类：' + c.name;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function resetCat() {
+  document.getElementById('catForm').reset();
+  document.getElementById('catId').value = '';
+  document.getElementById('catIcon').value = '📦';
+  document.getElementById('formTitle').textContent = '新增分类';
+}
+</script>
+
+<%- include('partials/foot') %>

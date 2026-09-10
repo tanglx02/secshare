@@ -1,0 +1,133 @@
+<%- include('partials/head') %>
+
+<div class="card">
+  <div class="card-body">
+    <form class="filters" method="get" action="/admin/posts">
+      <div class="form-group">
+        <label>关键词</label>
+        <input class="form-control" type="text" name="q" value="<%= filter.q %>" placeholder="标题 / 内容">
+      </div>
+      <div class="form-group">
+        <label>类型</label>
+        <select class="form-control" name="type">
+          <option value="">全部类型</option>
+          <option value="software" <%= filter.type === 'software' ? 'selected' : '' %>>软件工具</option>
+          <option value="doc" <%= filter.type === 'doc' ? 'selected' : '' %>>学习资料</option>
+          <option value="news" <%= filter.type === 'news' ? 'selected' : '' %>>资讯文章</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>分类</label>
+        <select class="form-control" name="cat">
+          <option value="">全部分类</option>
+          <% Object.values(catMap).forEach(function (c) { %>
+            <option value="<%= c.id %>" <%= String(filter.cat) === String(c.id) ? 'selected' : '' %>><%= c.icon %> <%= c.name %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>状态</label>
+        <select class="form-control" name="status">
+          <option value="all" <%= filter.status === 'all' ? 'selected' : '' %>>全部</option>
+          <option value="published" <%= filter.status === 'published' ? 'selected' : '' %>>已发布</option>
+          <option value="draft" <%= filter.status === 'draft' ? 'selected' : '' %>>草稿</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">🔍 筛选</button>
+      <a class="btn btn-outline" href="/admin/posts">重置</a>
+      <span class="spacer" style="flex:1;"></span>
+      <a class="btn btn-success" href="/admin/posts/new">＋ 新增内容</a>
+    </form>
+  </div>
+</div>
+
+<form method="post" action="/admin/posts/batch" data-confirm="确定执行批量操作吗？删除后不可恢复">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="card">
+    <div class="card-head">
+      <h3>内容列表（共 <%= pager.total %> 条）</h3>
+      <div class="toolbar">
+        <select class="form-control" name="action" style="width:auto;">
+          <option value="publish">批量发布</option>
+          <option value="draft">转为草稿</option>
+          <option value="top">切换置顶</option>
+          <option value="featured">切换推荐</option>
+          <option value="delete">批量删除</option>
+        </select>
+        <button class="btn btn-outline btn-sm" type="submit">应用</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th style="width:36px;"><input type="checkbox" onclick="toggleAll(this)"></th>
+            <th>标题</th>
+            <th>分类</th>
+            <th>类型</th>
+            <th>权限</th>
+            <th>状态</th>
+            <th>浏览/下载</th>
+            <th>更新时间</th>
+            <th style="width:150px;">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!posts.length) { %><tr><td colspan="9" class="empty">暂无内容，<a href="/admin/posts/new">立即新增</a></td></tr><% } %>
+          <% posts.forEach(function (p) {
+              var lvMap = { free: ['免费', 'b-green'], login: ['登录', 'b-blue'], points: ['积分', 'b-orange'], vip: ['VIP', 'b-yellow'], paid: ['付费', 'b-purple'] };
+              var lv = lvMap[p.accessLevel] || ['免费', 'b-green'];
+          %>
+            <tr>
+              <td><input type="checkbox" name="ids" value="<%= p.id %>"></td>
+              <td>
+                <% if (p.top) { %><span class="badge b-red" style="margin-right:4px;">置顶</span><% } %>
+                <% if (p.featured) { %><span class="badge b-blue" style="margin-right:4px;">推荐</span><% } %>
+                <a href="/admin/posts/<%= p.id %>/edit"><%= p.title %></a>
+                <div class="muted small">/<%= p.slug || p.id %> · 👁 <%= compactNumber(p.views || 0) %></div>
+              </td>
+              <td class="muted small"><%= (catMap[p.categoryId] || {}).name || '未分类' %></td>
+              <td class="muted small"><%= { software: '软件', doc: '资料', news: '资讯' }[p.type] || '软件' %></td>
+              <td><span class="badge <%= lv[1] %>"><%= lv[0] %></span></td>
+              <td>
+                <% if (p.status === 'published') { %><span class="badge b-green">已发布</span>
+                <% } else { %><span class="badge b-gray">草稿</span><% } %>
+              </td>
+              <td class="muted small"><%= compactNumber(p.views || 0) %> / <%= compactNumber(p.downloads || 0) %></td>
+              <td class="muted small"><%= formatDate(p.updatedAt || p.createdAt, true) %></td>
+              <td class="actions">
+                <a class="btn btn-outline btn-sm" href="/resource/<%= p.slug || p.id %>" target="_blank">预览</a>
+                <a class="btn btn-outline btn-sm" href="/admin/posts/<%= p.id %>/edit">编辑</a>
+                <button class="btn btn-danger btn-sm" type="submit" form="del-<%= p.id %>">删除</button>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% if (pager.pages > 1) { %>
+      <div class="pager">
+        <% var qs = 'q=' + encodeURIComponent(filter.q) + '&type=' + filter.type + '&cat=' + filter.cat + '&status=' + filter.status + '&'; %>
+        <% if (pager.hasPrev) { %><a href="?<%= qs %>page=<%= pager.page - 1 %>">上一页</a><% } %>
+        <% pager.range.forEach(function (n) { %>
+          <% if (n === '...') { %><span class="disabled">…</span>
+          <% } else if (n === pager.page) { %><span class="current"><%= n %></span>
+          <% } else { %><a href="?<%= qs %>page=<%= n %>"><%= n %></a><% } %>
+        <% }); %>
+        <% if (pager.hasNext) { %><a href="?<%= qs %>page=<%= pager.page + 1 %>">下一页</a><% } %>
+      </div>
+    <% } %>
+  </div>
+</form>
+
+<% posts.forEach(function (p) { %>
+  <form method="post" action="/admin/posts/<%= p.id %>/delete" id="del-<%= p.id %>" data-confirm="确定删除《<%= p.title %>》吗？该操作不可恢复！" style="display:none;">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+  </form>
+<% }); %>
+
+<script>
+document.querySelectorAll('a[href$="/edit"]').forEach(function (a) {});
+</script>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,63 @@
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4><%= settings.siteName %></h4>
+        <p style="line-height:1.9;margin:0 0 14px;"><%= settings.siteDescription %></p>
+        <p style="font-size:12.5px;color:#64748b;margin:0;">
+          <% if (settings.contactEmail) { %>邮箱：<%= settings.contactEmail %><br><% } %>
+          <% if (settings.contactWechat) { %>微信：<%= settings.contactWechat %><br><% } %>
+          <% if (settings.contactQQ) { %>QQ：<%= settings.contactQQ %><% } %>
+        </p>
+      </div>
+      <div>
+        <h4>资源分类</h4>
+        <ul>
+          <% (categories || []).slice(0, 6).forEach(function (c) { %>
+            <li><a href="/category/<%= c.slug %>"><%= c.icon || '📦' %> <%= c.name %></a></li>
+          <% }); %>
+        </ul>
+      </div>
+      <div>
+        <h4>常用入口</h4>
+        <ul>
+          <li><a href="/resources?type=software">软件工具</a></li>
+          <li><a href="/resources?type=doc">学习资料</a></li>
+          <li><a href="/vip">会员特权</a></li>
+          <li><a href="/about">关于我们</a></li>
+          <li><a href="/copyright">版权与侵权处理</a></li>
+          <li><a href="/contact">广告合作</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>友情链接</h4>
+        <ul>
+          <% (friendLinks || []).slice(0, 6).forEach(function (l) { %>
+            <li><a href="<%= l.url %>" target="_blank" rel="noopener nofollow"><%= l.name %></a></li>
+          <% }); %>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>
+        © <%= currentYear %> <%= settings.siteName %>
+        <% if (settings.icp) { %> · <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener"><%= settings.icp %></a><% } %>
+        <% if (settings.police) { %> · <%= settings.police %><% } %>
+        · Powered by Node.js
+      </div>
+      <div class="disclaimer"><%= settings.siteFooterNote %></div>
+    </div>
+  </div>
+</footer>
+
+<% if (settings.adsEnabled !== false) {
+     var floatAd = services.content.adFor('float');
+     if (floatAd && ((floatAd.type === 'html' && floatAd.html) || floatAd.image)) { %>
+  <div class="ad-float" id="floatAd">
+    <span class="close" onclick="document.getElementById('floatAd').style.display='none'">×</span>
+    <% if (floatAd.type === 'html') { %><%- floatAd.html %><% } else { %>
+      <a href="/ad/<%= floatAd.id %>" target="_blank" rel="noopener nofollow"><img src="<%= floatAd.image %>" alt="<%= floatAd.name %>"></a>
+    <% } %>
+  </div>
+<% } } %>
