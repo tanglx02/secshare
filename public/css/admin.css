@@ -50,6 +50,20 @@ img { max-width: 100%; }
 .side nav .group {
   font-size: 11px; color: #64748b; padding: 14px 10px 6px; letter-spacing: .5px; text-transform: uppercase;
 }
+/* 分组折叠 */
+.side nav .group-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: none; border: 0; cursor: pointer; padding: 14px 10px 6px;
+  font-size: 11px; color: #64748b; letter-spacing: .5px; text-transform: uppercase; font-family: inherit;
+}
+.side nav .group-toggle .arrow { font-size: 10px; transition: transform .18s; }
+.side nav .group-toggle:hover { color: #94a3b8; }
+.side nav .group-items { overflow: hidden; }
+.side nav .nav-group.collapsed .arrow { transform: rotate(-90deg); }
+.side nav .nav-group.collapsed .group-toggle { padding-bottom: 10px; }
+.side nav .nav-group.collapsed .group-items a.active {
+  background: var(--side-hover); box-shadow: none; font-weight: 400;
+}
 .side nav a {
   display: flex; align-items: center; gap: 10px; padding: 9.5px 12px; border-radius: 8px;
   color: #cbd5e1; font-size: 13.8px; margin-bottom: 2px; text-decoration: none; transition: all .15s;
@@ -227,7 +241,8 @@ select.form-control { cursor: pointer; }
 
 @media (max-width: 900px) {
   .side { width: 62px; }
-  .side .brand span:last-child, .side nav a span:not(.ico), .side nav .group { display: none; }
+  .side .brand span:last-child, .side nav a span:not(.ico), .side nav .group-toggle span:first-child, .side nav .group-toggle .arrow { display: none; }
+  .side nav .group-toggle { padding: 12px 0 8px; cursor: default; justify-content: center; }
   .side nav a { justify-content: center; padding: 11px 0; }
   .main { margin-left: 62px; }
   .form-row, .form-row-3, .form-row-4 { grid-template-columns: 1fr; }

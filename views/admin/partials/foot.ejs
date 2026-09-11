@@ -57,6 +57,43 @@
       '<button type="button" class="btn btn-outline btn-sm" onclick="this.parentNode.remove()">删除</button>';
     box.appendChild(div);
   };
+
+  // 侧边栏分组折叠（状态存 localStorage，当前页所在分组始终展开）
+  (function () {
+    var KEY = 'adminNavCollapsed';
+    var collapsed = {};
+    try { collapsed = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { collapsed = {}; }
+    var nav = document.getElementById('adminNav');
+    if (!nav) return;
+
+    function apply() {
+      nav.querySelectorAll('.nav-group').forEach(function (g) {
+        var items = g.querySelector('.group-items');
+        var name = g.getAttribute('data-group');
+        var hasActive = !!g.querySelector('a.active');
+        var isCollapsed = !hasActive && !!collapsed[name];
+        g.classList.toggle('collapsed', isCollapsed);
+        items.style.maxHeight = isCollapsed ? '0px' : items.scrollHeight + 'px';
+        var btn = g.querySelector('.group-toggle');
+        if (btn) btn.setAttribute('aria-expanded', String(!isCollapsed));
+      });
+    }
+
+    nav.querySelectorAll('.group-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var g = btn.closest('.nav-group');
+        var name = g.getAttribute('data-group');
+        var willCollapse = !g.classList.contains('collapsed');
+        collapsed[name] = willCollapse;
+        try { localStorage.setItem(KEY, JSON.stringify(collapsed)); } catch (e) { /* 忽略 */ }
+        apply();
+      });
+    });
+
+    // 字体/布局就绪后重算高度，避免动画首帧高度偏差
+    apply();
+    window.addEventListener('load', apply);
+  })();
 })();
 </script>
 </body>
