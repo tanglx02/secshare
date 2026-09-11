@@ -151,7 +151,8 @@ async function sendVerifyCode({ email, ip, purpose = 'register' }) {
   if (countRecent(forEmail, now - 3600000) >= EMAIL_HOURLY_LIMIT) {
     return { ok: false, message: '该邮箱今日发送次数过多，请稍后再试' };
   }
-  if (ip && countRecent(all.filter((r) => r.ip === ip), now - 3600000) >= IP_HOURLY_LIMIT) {
+  const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
+  if (ip && !isLoopback && countRecent(all.filter((r) => r.ip === ip), now - 3600000) >= IP_HOURLY_LIMIT) {
     return { ok: false, message: '当前网络发送次数过多，请稍后再试' };
   }
 

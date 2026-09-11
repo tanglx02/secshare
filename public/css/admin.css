@@ -225,6 +225,16 @@ select.form-control { cursor: pointer; }
   background: var(--p-light); color: var(--p); font-size: 12px; font-weight: 700; display: grid; place-items: center;
 }
 
+/* ---------------- 页签 ---------------- */
+.tabs { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 2px solid var(--border); flex-wrap: wrap; }
+.tabs a {
+  padding: 10px 18px; font-size: 13.8px; color: var(--text-2); border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid transparent; margin-bottom: -2px; text-decoration: none; transition: all .15s;
+}
+.tabs a:hover { color: var(--p); background: var(--p-light); text-decoration: none; }
+.tabs a.active { color: var(--p); border-bottom-color: var(--p); font-weight: 600; background: var(--p-light); }
+
+
 @media (max-width: 900px) {
   .side { width: 62px; }
   .side .brand span:last-child, .side nav a span:not(.ico), .side nav .group { display: none; }

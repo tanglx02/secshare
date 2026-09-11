@@ -26,17 +26,15 @@
 
       <div class="group">用户与变现</div>
       <a href="/admin/users" class="<%= activeMenu === 'users' ? 'active' : '' %>"><span class="ico">👥</span><span>用户管理</span></a>
-      <a href="/admin/mail" class="<%= activeMenu === 'mail' ? 'active' : '' %>"><span class="ico">✉️</span><span>邮件设置</span></a>
       <a href="/admin/orders" class="<%= activeMenu === 'orders' ? 'active' : '' %>"><span class="ico">🧾</span><span>订单管理</span></a>
       <a href="/admin/plans" class="<%= activeMenu === 'plans' ? 'active' : '' %>"><span class="ico">👑</span><span>会员套餐</span></a>
-      <a href="/admin/payment" class="<%= activeMenu === 'payment' ? 'active' : '' %>"><span class="ico">💳</span><span>支付设置</span></a>
       <a href="/admin/ads" class="<%= activeMenu === 'ads' ? 'active' : '' %>"><span class="ico">📈</span><span>广告管理</span></a>
       <a href="/admin/links" class="<%= activeMenu === 'links' ? 'active' : '' %>"><span class="ico">🔗</span><span>友情链接</span></a>
 
       <div class="group">系统</div>
       <a href="/admin/stats" class="<%= activeMenu === 'stats' ? 'active' : '' %>"><span class="ico">📉</span><span>数据统计</span></a>
       <a href="/admin/backup" class="<%= activeMenu === 'backup' ? 'active' : '' %>"><span class="ico">💾</span><span>数据备份</span></a>
-      <a href="/admin/settings" class="<%= activeMenu === 'settings' ? 'active' : '' %>"><span class="ico">⚙️</span><span>系统设置</span></a>
+      <a href="/admin/settings" class="<%= activeMenu === 'settings' || activeMenu === 'mail' || activeMenu === 'payment' ? 'active' : '' %>"><span class="ico">⚙️</span><span>系统设置</span></a>
     </nav>
   </aside>
 

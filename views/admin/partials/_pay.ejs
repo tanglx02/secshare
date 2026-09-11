@@ -1,0 +1,206 @@
+
+<% if (query.msg) { %><div class="alert alert-success"><%= query.msg %></div><% } %>
+<% if (query.err) { %><div class="alert alert-error"><%= query.err %></div><% } %>
+
+<div class="stat-cards">
+  <div class="stat-card <%= cfg.enabled ? 'c1' : '' %>">
+    <div class="lbl">支付开关</div>
+    <div class="val" style="font-size:20px;"><%= cfg.enabled ? '已启用' : '未启用' %></div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">运行环境</div>
+    <div class="val" style="font-size:20px;"><%= cfg.sandbox ? '沙箱' : '生产' %></div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">支付方式</div>
+    <div class="val" style="font-size:20px;"><%= cfg.payType === 'qr' ? '扫码支付' : '电脑网站' %></div>
+  </div>
+  <div class="stat-card <%= (cfg.appId && cfg.privateKey) ? 'c2' : 'c3' %>">
+    <div class="lbl">配置状态</div>
+    <div class="val" style="font-size:20px;">
+      <%= (!cfg.appId) ? '缺少 APPID' : (!cfg.hasPrivateKey ? '缺应用私钥' : (!cfg.hasPublicKey ? '缺支付宝公钥' : '可发起支付')) %>
+    </div>
+  </div>
+</div>
+
+<% if (cfg.keyBroken) { %>
+  <div class="alert alert-error">
+    <b>密钥解密失败</b>：检测到已保存的密钥无法解密，通常是因为 <code>SESSION_SECRET</code> 环境变量发生了变化。
+    请在本页重新填写「应用私钥」与「支付宝公钥」并保存。原有密钥已失效，不会泄露。
+  </div>
+<% } %>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>支付宝支付配置</h3></div>
+    <div class="card-body">
+      <form method="post" action="/admin/payment">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>支付功能</label>
+            <label class="checkbox" style="margin-top:8px;">
+              <input type="checkbox" name="alipayEnabled" <%= cfg.enabled ? 'checked' : '' %>> 启用支付宝支付
+            </label>
+            <div class="hint">关闭后前台只显示人工付款方式</div>
+          </div>
+          <div class="form-group">
+            <label>运行环境</label>
+            <select class="form-control" name="alipayMode">
+              <option value="sandbox" <%= cfg.sandbox ? 'selected' : '' %>>沙箱环境（测试）</option>
+              <option value="production" <%= !cfg.sandbox ? 'selected' : '' %>>生产环境（正式收款）</option>
+            </select>
+            <div class="hint">务必先在沙箱验证通过再切生产</div>
+          </div>
+          <div class="form-group">
+            <label>支付方式</label>
+            <select class="form-control" name="alipayPayType">
+              <option value="qr" <%= cfg.payType === 'qr' ? 'selected' : '' %>>扫码支付（当面付）</option>
+              <option value="page" <%= cfg.payType === 'page' ? 'selected' : '' %>>电脑网站支付</option>
+            </select>
+            <div class="hint">扫码支付需签约「当面付」</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>APPID <span style="color:var(--danger);">*</span></label>
+          <input class="form-control" type="text" name="alipayAppId" value="<%= cfg.appId %>" placeholder="2021000000000000">
+          <div class="hint">开放平台应用详情页可见；沙箱与生产的 APPID 不同，切换环境请同步更换</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group">
+          <label>应用私钥（RSA2）</label>
+          <textarea class="form-control" name="privateKey" style="min-height:96px;font-family:Consolas,monospace;font-size:12px;"
+            placeholder="<%= cfg.hasPrivateKey ? '已加密保存（留空表示不修改）' : '粘贴你的应用私钥，PKCS8 或 PKCS1 均可，只粘贴 base64 也能识别' %>"></textarea>
+          <div class="hint">仅保存在服务器本地，采用 AES-256-GCM 加密存储，页面不会回显</div>
+        </div>
+
+        <div class="form-group">
+          <label>支付宝公钥</label>
+          <textarea class="form-control" name="publicKey" style="min-height:96px;font-family:Consolas,monospace;font-size:12px;"
+            placeholder="<%= cfg.hasPublicKey ? '已加密保存（留空表示不修改）' : '粘贴「支付宝公钥」（注意不是应用公钥）' %>"></textarea>
+          <div class="hint">用于校验支付宝回调通知的签名，是防伪造支付的关键</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>卖家 UID（可选）</label>
+            <input class="form-control" type="text" name="alipaySellerId" value="<%= cfg.sellerId %>" placeholder="2088xxxxxx">
+            <div class="hint">填写后会校验回调收款账号</div>
+          </div>
+          <div class="form-group">
+            <label>订单标题前缀（可选）</label>
+            <input class="form-control" type="text" name="alipaySubjectPrefix" value="<%= cfg.subjectPrefix %>" placeholder="SecShare">
+          </div>
+          <div class="form-group">
+            <label>自定义网关（可选）</label>
+            <input class="form-control" type="text" name="alipayGateway" value="<%= cfg.gateway %>" placeholder="<%= cfg.sandbox ? '沙箱网关（默认）' : '生产网关（默认）' %>">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>异步通知地址（notify_url）</label>
+            <input class="form-control" type="text" name="alipayNotifyUrl" value="<%= cfg.notifyUrl %>" placeholder="<%= suggested.notify %>">
+            <div class="hint">必须公网可访问，否则支付成功后需用户手动点「我已支付」核验</div>
+          </div>
+          <div class="form-group">
+            <label>同步跳转地址（return_url）</label>
+            <input class="form-control" type="text" name="alipayReturnUrl" value="<%= cfg.returnUrl %>" placeholder="<%= suggested.return %>">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" type="submit">保存支付配置</button>
+          <button class="btn btn-outline" type="submit" formaction="/admin/payment/test">测试网关连通性</button>
+          <button class="btn btn-danger" type="submit" name="clearKeys" value="1" formnovalidate
+            data-confirm="确定清空已保存的应用私钥与支付宝公钥吗？清空后需重新填写才能收款"
+            onclick="return confirm('确定清空已保存的应用私钥与支付宝公钥吗？');">清空密钥</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head"><h3>接入步骤</h3></div>
+      <div class="card-body">
+        <ol class="help-steps">
+          <li>登录 <b>支付宝开放平台</b>，创建「网页/移动应用」，拿到 <b>APPID</b></li>
+          <li>在应用设置中开启 <b>RSA2 密钥模式</b>，用官方「支付宝密钥生成工具」生成一对密钥</li>
+          <li>把 <b>应用公钥</b> 上传到开放平台，平台会生成对应的 <b>支付宝公钥</b></li>
+          <li>本页粘贴：<b>应用私钥</b>（自己保存的那把）+ <b>支付宝公钥</b>（平台生成的，不是应用公钥）</li>
+          <li>签约能力：扫码支付需签约「当面付」，电脑网站支付需签约「电脑网站支付」</li>
+          <li>填写 notify_url（本站 <span class="mono"><%= suggested.notify %></span>），保存后点「测试网关连通性」</li>
+          <li>用沙箱先跑通一笔真实订单，确认会员自动开通后，再切到生产环境</li>
+        </ol>
+        <div class="alert alert-warn" style="margin-bottom:0;">
+          切换环境（沙箱 ↔ 生产）后，APPID 与密钥都要一起更换。
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>最近已收款订单</h3><a class="btn btn-outline btn-sm" href="/admin/orders?status=paid">全部</a></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>订单号</th><th>金额</th><th>时间</th></tr></thead>
+          <tbody>
+            <% if (!paidOrders.length) { %><tr><td colspan="3" class="empty">暂无已支付订单</td></tr><% } %>
+            <% paidOrders.forEach(function (o) { %>
+              <tr>
+                <td class="mono small"><%= o.orderNo %></td>
+                <td><b>¥<%= formatMoney(o.amount) %></b></td>
+                <td class="muted small"><%= formatDate(o.paidAt || o.createdAt, true) %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>支付日志</h3><span class="muted small">最近 20 条</span></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>时间</th><th>动作</th><th>订单</th></tr></thead>
+          <tbody>
+            <% if (!logs.length) { %><tr><td colspan="3" class="empty">暂无日志</td></tr><% } %>
+            <% logs.forEach(function (l) { %>
+              <tr>
+                <td class="muted small nowrap"><%= formatDate(l.createdAt, true) %></td>
+                <td class="small">
+                  <%
+                    var actMap = {
+                      'notify-invalid-sign': ['通知验签失败', 'b-red'],
+                      'notify-paid': ['通知收款成功', 'b-green'],
+                      'notify-mismatch': ['通知校验不符', 'b-red'],
+                      'notify-order-missing': ['通知订单不存在', 'b-red'],
+                      'qr-created': ['生成二维码', 'b-blue'],
+                      'page-pay-redirect': ['跳转收银台', 'b-blue'],
+                      'query-paid': ['查单确认收款', 'b-green'],
+                      'manual-query-paid': ['手动核验收款', 'b-green'],
+                      'return-paid': ['同步跳转确认', 'b-green']
+                    };
+                    var a = actMap[l.action] || [l.action, 'b-gray'];
+                  %>
+                  <span class="badge <%= a[1] %>"><%= a[0] %></span>
+                  <% if (l.message) { %><div class="muted small"><%= l.message %></div><% } %>
+                </td>
+                <td class="mono small"><%= l.orderNo || '—' %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+

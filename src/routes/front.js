@@ -423,8 +423,10 @@ pageRouter.post('/register', (req, res) => {
   const ip = userSvc.clientIp(req);
 
   // 同 IP 注册频率限制，配合邮箱验证一起挡批量注册
+  // 回环地址豁免：本机测试/内网管理不受限；公网连接的源 IP 不可能是 127.0.0.1/::1，不影响防护
   const limit = Number(settings.registerIpDailyLimit);
-  if (Number.isFinite(limit) && limit > 0 && ip) {
+  const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
+  if (Number.isFinite(limit) && limit > 0 && ip && !isLoopback) {
     const since = Date.now() - 86400000;
     const used = store.count('users', (u) => u.registerIp === ip && new Date(u.createdAt || 0).getTime() > since);
     if (used >= limit) {

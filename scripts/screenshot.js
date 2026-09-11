@@ -88,11 +88,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await login('/admin/login', ADMIN.account, ADMIN.password);
     await shot('07-admin-dashboard.png', '/admin');
     await shot('08-admin-posts.png', '/admin/posts');
-    await shot('09-admin-payment.png', '/admin/payment');
+    await shot('09-admin-payment.png', '/admin/settings?tab=pay');
     await shot('10-admin-backup.png', '/admin/backup');
     await shot('11-admin-post-edit.png', '/admin/posts/1/edit');
     await shot('12-admin-users.png', '/admin/users');
-    await shot('13-admin-mail.png', '/admin/mail');
+    await shot('13-admin-mail.png', '/admin/settings?tab=mail');
     await shot('14-admin-settings.png', '/admin/settings');
 
     console.log(`\n完成，共 ${count} 张，输出目录：${OUT}\n`);

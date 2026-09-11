@@ -566,14 +566,37 @@ const BOOL_KEYS = [
 ];
 
 router.get('/settings', (req, res) => {
+  const tab = ['site', 'mail', 'pay'].indexOf(req.query.tab) >= 0 ? req.query.tab : 'site';
   const samplePost = store.all('posts')[0];
-  res.render('admin/settings', adminLocals({
-    layoutTitle: '系统设置', activeMenu: 'settings',
-    s: getSettings(), boolKeys: BOOL_KEYS,
-    permalinkStructures: permalink.STRUCTURES,
-    permalinkSample: samplePost ? permalink.postPath(samplePost) : '/resource/示例别名',
-    dbSize: (() => { try { return fs.statSync(config.paths.dbFile).size; } catch (_) { return 0; } })(),
-  }));
+  const extra = {
+    activeMenu: tab === 'mail' ? 'mail' : (tab === 'pay' ? 'payment' : 'settings'),
+    tab,
+  };
+  if (tab === 'mail') {
+    extra.layoutTitle = '邮件设置';
+    extra.s = getSettings();
+    extra.cfg = mailer.getMailConfig();
+    extra.codes = mailer.recentCodes(15);
+    return res.render('admin/settings', adminLocals(extra));
+  }
+  if (tab === 'pay') {
+    extra.layoutTitle = '支付设置';
+    extra.cfg = pay.getPayConfig();
+    extra.suggested = pay.suggestedUrls(getSettings().siteUrl);
+    extra.logs = store.all('paylogs').slice().reverse().slice(0, 20);
+    extra.paidOrders = store.all('orders')
+      .filter((o) => o.status === 'paid')
+      .sort((a, b) => new Date(b.paidAt || b.updatedAt || b.createdAt) - new Date(a.paidAt || a.updatedAt || a.createdAt))
+      .slice(0, 8);
+    return res.render('admin/settings', adminLocals(extra));
+  }
+  extra.layoutTitle = '系统设置';
+  extra.s = getSettings();
+  extra.boolKeys = BOOL_KEYS;
+  extra.permalinkStructures = permalink.STRUCTURES;
+  extra.permalinkSample = samplePost ? permalink.postPath(samplePost) : '/resource/示例别名';
+  extra.dbSize = (() => { try { return fs.statSync(config.paths.dbFile).size; } catch (_) { return 0; } })();
+  res.render('admin/settings', adminLocals(extra));
 });
 
 router.post('/settings', (req, res) => {
@@ -700,51 +723,32 @@ router.post('/backup/auto', (req, res) => {
   res.redirect('/admin/backup?msg=' + encodeURIComponent('自动备份策略已保存'));
 });
 
-// ---------------- 支付设置 ----------------
-router.get('/payment', (req, res) => {
-  const cfg = pay.getPayConfig();
-  res.render('admin/payment', adminLocals({
-    layoutTitle: '支付设置', activeMenu: 'payment',
-    cfg,
-    suggested: pay.suggestedUrls(getSettings().siteUrl),
-    logs: store.all('paylogs').slice().reverse().slice(0, 20),
-    paidOrders: store.all('orders')
-      .filter((o) => o.status === 'paid')
-      .sort((a, b) => new Date(b.paidAt || b.updatedAt || b.createdAt) - new Date(a.paidAt || a.updatedAt || a.createdAt))
-      .slice(0, 8),
-  }));
-});
+// ---------------- 支付设置（并入系统设置-支付页签） ----------------
+router.get('/payment', (req, res) => res.redirect('/admin/settings?tab=pay'));
 
 router.post('/payment', (req, res) => {
   try {
     pay.savePayConfig(req.body);
-    res.redirect('/admin/payment?msg=' + encodeURIComponent('支付配置已保存'));
+    res.redirect('/admin/settings?tab=pay&msg=' + encodeURIComponent('支付配置已保存'));
   } catch (err) {
-    res.redirect('/admin/payment?err=' + encodeURIComponent(err.message));
+    res.redirect('/admin/settings?tab=pay&err=' + encodeURIComponent(err.message));
   }
 });
 
 router.post('/payment/test', async (req, res) => {
   const r = await pay.testConnection();
-  res.redirect('/admin/payment?' + (r.ok ? 'msg=' : 'err=') + encodeURIComponent((r.ok ? '连接正常：' : '连接失败：') + r.message));
+  res.redirect('/admin/settings?tab=pay&' + (r.ok ? 'msg=' : 'err=') + encodeURIComponent((r.ok ? '连接正常：' : '连接失败：') + r.message));
 });
 
-// ---------------- 邮件服务（SMTP） ----------------
-router.get('/mail', (req, res) => {
-  res.render('admin/mail', adminLocals({
-    layoutTitle: '邮件设置', activeMenu: 'mail',
-    cfg: mailer.getMailConfig(),
-    codes: mailer.recentCodes(15),
-    s: getSettings(),
-  }));
-});
+// ---------------- 邮件服务（并入系统设置-邮件页签） ----------------
+router.get('/mail', (req, res) => res.redirect('/admin/settings?tab=mail'));
 
 router.post('/mail', (req, res) => {
   try {
     mailer.saveMailConfig(req.body);
-    res.redirect('/admin/mail?msg=' + encodeURIComponent('邮件配置已保存'));
+    res.redirect('/admin/settings?tab=mail&msg=' + encodeURIComponent('邮件配置已保存'));
   } catch (err) {
-    res.redirect('/admin/mail?err=' + encodeURIComponent(err.message));
+    res.redirect('/admin/settings?tab=mail&err=' + encodeURIComponent(err.message));
   }
 });
 
@@ -760,13 +764,13 @@ router.post('/mail/test', async (req, res) => {
                <p>发送时间：${new Date().toLocaleString('zh-CN')}</p>
                <p style="color:#9ca3af;font-size:12px;">本邮件由 ${s.siteName} 后台自动发送。</p>`,
       });
-      return res.redirect('/admin/mail?msg=' + encodeURIComponent(`测试邮件已发送到 ${to}，请查收（含垃圾箱）`));
+      return res.redirect('/admin/settings?tab=mail&msg=' + encodeURIComponent(`测试邮件已发送到 ${to}，请查收（含垃圾箱）`));
     } catch (err) {
-      return res.redirect('/admin/mail?err=' + encodeURIComponent('发送失败：' + err.message));
+      return res.redirect('/admin/settings?tab=mail&err=' + encodeURIComponent('发送失败：' + err.message));
     }
   }
   const r = await mailer.testConnection();
-  res.redirect('/admin/mail?' + (r.ok ? 'msg=' : 'err=') + encodeURIComponent((r.ok ? '连接正常：' : '连接失败：') + r.message));
+  res.redirect('/admin/settings?tab=mail&' + (r.ok ? 'msg=' : 'err=') + encodeURIComponent((r.ok ? '连接正常：' : '连接失败：') + r.message));
 });
 
 // ---------------- 上传接口 ----------------

@@ -1,6 +1,22 @@
 <%- include('partials/head') %>
 
 <% if (query.msg) { %><div class="alert alert-success"><%= query.msg %></div><% } %>
+<% if (query.err) { %><div class="alert alert-error"><%= query.err %></div><% } %>
+
+<%
+  var tab = ['site', 'mail', 'pay'].indexOf(query.tab) >= 0 ? query.tab : 'site';
+%>
+<div class="tabs">
+  <a class="<%= tab === 'site' ? 'active' : '' %>" href="/admin/settings?tab=site">站点设置</a>
+  <a class="<%= tab === 'mail' ? 'active' : '' %>" href="/admin/settings?tab=mail">邮件设置</a>
+  <a class="<%= tab === 'pay' ? 'active' : '' %>" href="/admin/settings?tab=pay">支付设置</a>
+</div>
+
+<% if (tab === 'mail') { %>
+  <%- include('partials/_mail') %>
+<% } else if (tab === 'pay') { %>
+  <%- include('partials/_pay') %>
+<% } else { %>
 
 <form method="post" action="/admin/settings">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
@@ -265,5 +281,7 @@
     </div>
   </div>
 </form>
+
+<% } %>
 
 <%- include('partials/foot') %>

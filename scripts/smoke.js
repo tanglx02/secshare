@@ -337,7 +337,7 @@ async function req(jar, path, opts = {}) {
     });
     ok('格式错误的私钥被拒绝', badKey.status === 302 && /err=/.test(badKey.location || ''), decodeURIComponent(badKey.location || ''));
 
-    const payAdmin = await req(adm, '/admin/payment');
+    const payAdmin = await req(adm, '/admin/settings?tab=pay');
     ok('后台显示密钥已加密保存', payAdmin.text.includes('已加密保存'));
     ok('后台配置状态为「可发起支付」', payAdmin.text.includes('可发起支付'));
 
@@ -412,7 +412,7 @@ async function req(jar, path, opts = {}) {
     });
     ok('重复通知幂等返回 success', again.text.trim() === 'success');
 
-    const adminPay = await req(adm, '/admin/payment');
+    const adminPay = await req(adm, '/admin/settings?tab=pay');
     ok('后台支付日志记录到收款', adminPay.text.includes('通知收款成功'));
 
     const statusApi = JSON.parse((await req(user, `/api/pay/status/${no1}`)).text || '{}');
@@ -572,14 +572,14 @@ async function req(jar, path, opts = {}) {
       },
     });
     ok('清理测试用支付密钥', cleanup.status === 302);
-    const finalPage = await req(adm, '/admin/payment');
+    const finalPage = await req(adm, '/admin/settings?tab=pay');
     ok('支付功能已恢复为未启用状态', finalPage.text.includes('未启用') && !finalPage.text.includes('已加密保存'));
   }
 
   // ============ [12] 邮箱验证注册 ============
   console.log('\n[12] 邮箱验证注册与邮件设置');
   {
-    const mailPage = await req(adm, '/admin/mail');
+    const mailPage = await req(adm, '/admin/settings?tab=mail');
     ok('邮件设置页可访问', mailPage.status === 200 && mailPage.text.includes('SMTP'));
 
     const enable = await req(adm, '/admin/mail', {
@@ -621,7 +621,7 @@ async function req(jar, path, opts = {}) {
     });
     ok('60 秒内重复发送被限流', JSON.parse(resend.text || '{}').ok === false, resend.text.slice(0, 100));
 
-    const codePage = await req(adm, '/admin/mail');
+    const codePage = await req(adm, '/admin/settings?tab=mail');
     const m = codePage.text.match(/smoke\d+@example\.com[\s\S]{0,320}?<b>(\d{6})<\/b>/);
     const code = m ? m[1] : '';
     ok('后台可查看验证码', !!code, '未解析出验证码');
