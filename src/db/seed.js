@@ -706,11 +706,13 @@ function seed({ force = false, reset = false } = {}) {
 
   // 内容
   if (store.count('posts') === 0) {
+    const permalink = require('../services/permalink');
     POSTS.forEach((p, i) => {
       const { categorySlug, ...rest } = p;
       const publishedAt = new Date(Date.now() - i * 36 * 3600000).toISOString();
       store.insert('posts', Object.assign(rest, {
         categoryId: catMap[categorySlug] || null,
+        slug: permalink.uniqueSlug(permalink.generateSlug(p.title, i + 1), i + 1),
         status: 'published',
         views: Math.floor(Math.random() * 8000) + 800,
         downloads: Math.floor(Math.random() * 3000) + 120,

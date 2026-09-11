@@ -1,4 +1,34 @@
 <%- include('partials/head') %>
+<%
+  /* 结构化数据：站点 + 组织，帮助搜索引擎理解站点主体 */
+  if (settings.enableStructuredData !== false) {
+    var _base = String(settings.siteUrl || '').replace(/\/+$/, '');
+    var ldSite = {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: settings.siteName,
+      alternateName: settings.siteSubtitle || '',
+      url: _base || '/',
+      description: settings.siteDescription,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: _base + '/search?q={search_term_string}',
+        'query-input': 'required name=search_term_string'
+      }
+    };
+    var ldOrg = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: settings.siteName,
+      url: _base || '/',
+      logo: settings.logoImage || (_base + '/favicon.svg')
+    };
+  }
+%>
+<% if (settings.enableStructuredData !== false) { %>
+<script type="application/ld+json"><%- JSON.stringify(ldSite).replace(/</g, '\\u003c') %></script>
+<script type="application/ld+json"><%- JSON.stringify(ldOrg).replace(/</g, '\\u003c') %></script>
+<% } %>
 
 <section class="hero">
   <div class="container">

@@ -1,16 +1,52 @@
+<%
+  /* ---------- SEO 计算 ---------- */
+  var siteBase = String(settings.siteUrl || '').replace(/\/+$/, '');
+  var curPath = (typeof fullPath !== 'undefined' && fullPath) ? fullPath : (typeof path !== 'undefined' ? path : '/');
+  var metaDesc = (typeof desc !== 'undefined' && desc) ? desc : settings.siteDescription;
+  var metaKeywords = (typeof keywords !== 'undefined' && keywords) ? keywords : settings.siteKeywords;
+  var canonicalUrl = (typeof canonical !== 'undefined' && canonical) ? canonical : (siteBase ? siteBase + curPath : '');
+  var ogTypeVal = (typeof ogType !== 'undefined' && ogType) ? ogType : 'website';
+  var robotsMeta = (typeof robots !== 'undefined' && robots) ? robots : '';
+  var ogImg = (typeof ogImage !== 'undefined' && ogImage) ? ogImage : (settings.ogImage || '');
+  if (ogImg && !/^https?:\/\//i.test(ogImg) && siteBase) ogImg = siteBase + ogImg;
+  var pageTitleVal = (typeof pageTitle !== 'undefined' && pageTitle) ? pageTitle : settings.siteName;
+%>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><%= typeof title !== 'undefined' ? title : settings.siteName %></title>
-<meta name="description" content="<%= typeof desc !== 'undefined' && desc ? desc : settings.siteDescription %>">
-<meta name="keywords" content="<%= typeof keywords !== 'undefined' && keywords ? keywords : settings.siteKeywords %>">
+<meta name="description" content="<%= metaDesc %>">
+<meta name="keywords" content="<%= metaKeywords %>">
 <meta name="renderer" content="webkit">
+<% if (robotsMeta) { %><meta name="robots" content="<%= robotsMeta %>"><% } %>
+<% if (settings.verifyGoogle) { %><meta name="google-site-verification" content="<%= settings.verifyGoogle %>"><% } %>
+<% if (settings.verifyBing) { %><meta name="msvalidate.01" content="<%= settings.verifyBing %>"><% } %>
+<% if (settings.verifyBaidu) { %><meta name="baidu-site-verification" content="<%= settings.verifyBaidu %>"><% } %>
+<% if (settings.verify360) { %><meta name="360-site-verification" content="<%= settings.verify360 %>"><% } %>
+<% if (settings.verifySogou) { %><meta name="sogou_site_verification" content="<%= settings.verifySogou %>"><% } %>
+<% if (canonicalUrl) { %><link rel="canonical" href="<%= canonicalUrl %>"><% } %>
+
 <meta property="og:site_name" content="<%= settings.siteName %>">
-<meta property="og:title" content="<%= typeof pageTitle !== 'undefined' && pageTitle ? pageTitle : settings.siteName %>">
-<meta property="og:description" content="<%= typeof desc !== 'undefined' && desc ? desc : settings.siteDescription %>">
-<meta property="og:type" content="website">
+<meta property="og:title" content="<%= pageTitleVal %>">
+<meta property="og:description" content="<%= metaDesc %>">
+<meta property="og:type" content="<%= ogTypeVal %>">
+<% if (canonicalUrl) { %><meta property="og:url" content="<%= canonicalUrl %>"><% } %>
+<% if (ogImg) { %><meta property="og:image" content="<%= ogImg %>"><% } %>
+<meta property="og:locale" content="zh_CN">
+
+<meta name="twitter:card" content="<%= ogImg ? 'summary_large_image' : 'summary' %>">
+<meta name="twitter:title" content="<%= pageTitleVal %>">
+<meta name="twitter:description" content="<%= metaDesc %>">
+<% if (ogImg) { %><meta name="twitter:image" content="<%= ogImg %>"><% } %>
+
+<% if (ogTypeVal === 'article') { %>
+<meta property="article:published_time" content="<%= typeof publishedTime !== 'undefined' && publishedTime ? publishedTime : '' %>">
+<meta property="article:modified_time" content="<%= typeof modifiedTime !== 'undefined' && modifiedTime ? modifiedTime : '' %>">
+<meta property="article:section" content="<%= typeof category !== 'undefined' && category ? category.name : '' %>">
+<% } %>
+
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate" type="application/rss+xml" title="<%= settings.siteName %> RSS" href="/rss.xml">
 <link rel="stylesheet" href="/css/main.css">

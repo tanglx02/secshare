@@ -62,6 +62,35 @@ const DEFAULTS = {
   lastAutoBackupAt: '',
   lastBackupAt: '',
 
+  // 邮件服务与注册验证（密码在「邮件设置」单独加密保存）
+  mailEnabled: false,
+  smtpHost: '',
+  smtpPort: 465,
+  smtpSecure: true,
+  smtpUser: '',
+  smtpFromName: '',
+  smtpFromEmail: '',
+  registerNeedEmailVerify: false,   // 注册必须邮箱验证码
+  registerIpDailyLimit: 3,          // 同 IP 24 小时注册上限，0 = 不限制
+  mailEchoCode: false,              // 仅调试用：未配置 SMTP 时把验证码回显到页面（生产务必关闭）
+
+  // 链接结构（Permalink）
+  permalinkStructure: 'slug',       // slug | id | id-slug | category | type
+  permalinkPrefix: 'resource',      // 自定义前缀，如 tools / soft
+  permalinkSuffix: '',              // '' 或 '.html'
+  slugMode: 'auto',                 // auto（优先英文数字，URL 更干净）| full（保留中文）
+  slugMaxLength: 60,                // 别名最大长度
+
+  // SEO 增强
+  ogImage: '',                      // 社交分享默认图
+  verifyGoogle: '',                 // 各站长平台验证 meta 的 content 值
+  verifyBing: '',
+  verifyBaidu: '',
+  verify360: '',
+  verifySogou: '',
+  searchPageNoindex: true,          // 搜索/筛选页 noindex，避免低质页面进索引
+  enableStructuredData: true,       // 输出 JSON-LD 结构化数据
+
   // 统计与 SEO
   statsCode: '',
   siteFooterNote: '本站所有资源均来自互联网收集，仅供安全研究与学习交流使用，请于下载后 24 小时内删除。',

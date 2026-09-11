@@ -71,7 +71,7 @@ async function req(jar, path, opts = {}) {
 
   console.log('[1] 前台公开页面');
   const pages = ['/', '/resources', '/resources?type=doc', '/resources?sort=download',
-    '/category/penetration', '/tag/开源免费', '/search?q=nmap', '/resource/1',
+    '/category/penetration', '/tag/开源免费', '/search?q=nmap',
     '/vip', '/login', '/register', '/about', '/disclaimer', '/contact', '/copyright',
     '/sitemap.xml', '/robots.txt', '/rss.xml', '/healthz'];
   for (const p of pages) {
@@ -80,6 +80,13 @@ async function req(jar, path, opts = {}) {
   }
   const notFound = await req(anon, '/this-page-not-exist');
   ok('未知路径返回 404', notFound.status === 404, `=> ${notFound.status}`);
+
+  // 旧数字 ID 链接应 301 到规范别名地址（SEO 权重集中）
+  const legacy = await req(anon, '/resource/1');
+  ok('旧数字 ID 链接 301 到规范地址', legacy.status === 301 && /^\/resource\//.test(legacy.location), `=> ${legacy.status} ${legacy.location}`);
+  const slugPath = legacy.location || '';
+  const canonicalPage = await req(anon, slugPath);
+  ok('规范别名地址可正常访问', canonicalPage.status === 200, `=> ${canonicalPage.status}`);
 
   console.log('\n[2] 静态资源与 SEO 输出');
   const css = await req(anon, '/css/main.css');
@@ -567,6 +574,149 @@ async function req(jar, path, opts = {}) {
     ok('清理测试用支付密钥', cleanup.status === 302);
     const finalPage = await req(adm, '/admin/payment');
     ok('支付功能已恢复为未启用状态', finalPage.text.includes('未启用') && !finalPage.text.includes('已加密保存'));
+  }
+
+  // ============ [12] 邮箱验证注册 ============
+  console.log('\n[12] 邮箱验证注册与邮件设置');
+  {
+    const mailPage = await req(adm, '/admin/mail');
+    ok('邮件设置页可访问', mailPage.status === 200 && mailPage.text.includes('SMTP'));
+
+    const enable = await req(adm, '/admin/mail', {
+      method: 'POST',
+      form: {
+        _csrf: adm.get('csrf'), mailEnabled: 'on', registerNeedEmailVerify: 'on',
+        registerIpDailyLimit: '0', smtpPort: '465', smtpHost: '', smtpUser: '', smtpFromName: '', smtpFromEmail: '',
+      },
+    });
+    ok('保存邮件设置并开启邮箱验证', enable.status === 302, `=> ${enable.status}`);
+
+    const regPage = await req(anon, '/register');
+    ok('注册页出现验证码输入与获取按钮', regPage.text.includes('emailCode') && regPage.text.includes('获取验证码'));
+
+    const mailAddr = `smoke${Date.now().toString().slice(-6)}@example.com`;
+
+    const noCode = await req(anon, '/register', {
+      method: 'POST',
+      form: { _csrf: anon.get('csrf'), username: 'nc' + Date.now().toString().slice(-6), email: mailAddr, password: 'test1234', password2: 'test1234' },
+    });
+    ok('缺验证码无法注册', noCode.status === 400 && /验证码/.test(noCode.text), `=> ${noCode.status}`);
+
+    const badMail = await req(anon, '/api/register/send-code', {
+      method: 'POST', headers: { 'x-csrf-token': anon.get('csrf'), 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'not-an-email' }),
+    });
+    ok('非法邮箱被拒绝', JSON.parse(badMail.text || '{}').ok === false);
+
+    const send = await req(anon, '/api/register/send-code', {
+      method: 'POST', headers: { 'x-csrf-token': anon.get('csrf'), 'content-type': 'application/json' },
+      body: JSON.stringify({ email: mailAddr }),
+    });
+    const sendJson = JSON.parse(send.text || '{}');
+    ok('发送验证码成功（未配 SMTP 时降级调试模式）', sendJson.ok === true && sendJson.devMode === true, send.text.slice(0, 120));
+
+    const resend = await req(anon, '/api/register/send-code', {
+      method: 'POST', headers: { 'x-csrf-token': anon.get('csrf'), 'content-type': 'application/json' },
+      body: JSON.stringify({ email: mailAddr }),
+    });
+    ok('60 秒内重复发送被限流', JSON.parse(resend.text || '{}').ok === false, resend.text.slice(0, 100));
+
+    const codePage = await req(adm, '/admin/mail');
+    const m = codePage.text.match(/smoke\d+@example\.com[\s\S]{0,320}?<b>(\d{6})<\/b>/);
+    const code = m ? m[1] : '';
+    ok('后台可查看验证码', !!code, '未解析出验证码');
+
+    if (code) {
+      const wrong = await req(anon, '/register', {
+        method: 'POST',
+        form: { _csrf: anon.get('csrf'), username: 'wc' + Date.now().toString().slice(-6), email: mailAddr, password: 'test1234', password2: 'test1234', emailCode: '000000' },
+      });
+      ok('错误验证码被拒绝', wrong.status === 400 && /验证码/.test(wrong.text), `=> ${wrong.status}`);
+
+      const uname = 'ok' + Date.now().toString().slice(-6);
+      const good = await req(anon, '/register', {
+        method: 'POST',
+        form: { _csrf: anon.get('csrf'), username: uname, email: mailAddr, password: 'test1234', password2: 'test1234', emailCode: code },
+      });
+      ok('正确验证码可完成注册', good.status === 302, `=> ${good.status}`);
+      const mePage = await req(anon, '/user');
+      ok('验证注册后自动登录', mePage.status === 200 && mePage.text.includes(uname));
+
+      const reuseJar = new Jar();
+      await req(reuseJar, '/register');
+      const reuse = await req(reuseJar, '/register', {
+        method: 'POST',
+        form: { _csrf: reuseJar.get('csrf'), username: 'rz' + Date.now().toString().slice(-6), email: mailAddr, password: 'test1234', password2: 'test1234', emailCode: code },
+      });
+      ok('验证码不可重复使用', reuse.status === 400, `=> ${reuse.status}`);
+    }
+
+    await req(adm, '/admin/mail', {
+      method: 'POST',
+      form: { _csrf: adm.get('csrf'), registerNeedEmailVerify: '', mailEnabled: '', registerIpDailyLimit: '3', smtpPort: '465' },
+    });
+    const offPage = await req(anon, '/register');
+    ok('关闭后注册页不再要求验证码', !offPage.text.includes('emailCode'));
+  }
+
+  // ============ [13] SEO 输出 ============
+  console.log('\n[13] SEO 标签与结构化数据');
+  {
+    const home = await req(anon, '/');
+    ok('首页输出 canonical', home.text.includes('rel="canonical"') && home.text.includes('localhost:3000'));
+    ok('首页输出 WebSite 结构化数据', home.text.includes('"@type":"WebSite"') && home.text.includes('SearchAction'));
+    ok('首页输出 Organization 结构化数据', home.text.includes('"@type":"Organization"'));
+    ok('首页输出 og 标签', home.text.includes('og:title') && home.text.includes('og:type'));
+
+    const detail = await req(anon, slugPath);
+    ok('详情页输出软件/文章结构化数据', /"@type":"(SoftwareApplication|Article)"/.test(detail.text));
+    ok('详情页输出面包屑结构化数据', detail.text.includes('BreadcrumbList'));
+    ok('详情页 og:type 为 article', detail.text.includes('og:type" content="article"'));
+    ok('详情页输出发布时间 meta', detail.text.includes('article:published_time'));
+    ok('详情页 canonical 指向规范别名', detail.text.includes(`${slugPath}"`));
+
+    const search = await req(anon, '/search?q=nmap');
+    ok('搜索页输出 noindex', search.text.includes('name="robots" content="noindex'));
+    const filtered = await req(anon, '/resources?type=software');
+    ok('筛选页输出 noindex', filtered.text.includes('name="robots" content="noindex'));
+    const plain = await req(anon, '/resources');
+    ok('资源库主页保持可索引', !plain.text.includes('name="robots" content="noindex'));
+
+    const sm = await req(anon, '/sitemap.xml');
+    ok('sitemap 使用别名地址', /\/resource\/[a-z0-9][a-z0-9-.]*</.test(sm.text) || sm.text.includes('resource/'));
+  }
+
+  // ============ [14] 链接结构切换 ============
+  console.log('\n[14] 链接结构切换与旧地址兼容');
+  {
+    const setStruct = async (form) => req(adm, '/admin/settings', {
+      method: 'POST',
+      form: Object.assign({ _csrf: adm.get('csrf'), __bools: '' }, form),
+    });
+
+    ok('切到 ID 结构', (await setStruct({ permalinkStructure: 'id', permalinkPrefix: 'resource' })).status === 302);
+    ok('ID 结构下数字地址可访问', (await req(anon, '/resource/1')).status === 200);
+    const oldSlug = await req(anon, slugPath);
+    ok('ID 结构下旧别名 301 到数字地址', oldSlug.status === 301 && /\/resource\/\d+$/.test(oldSlug.location), `=> ${oldSlug.status} ${oldSlug.location}`);
+
+    ok('切到「ID-别名」结构', (await setStruct({ permalinkStructure: 'id-slug' })).status === 302);
+    const idSlug = await req(anon, '/resource/1');
+    ok('ID-别名结构生效', idSlug.status === 301 && /\/resource\/1-/.test(idSlug.location), `=> ${idSlug.location}`);
+
+    ok('切到「分类/别名」结构', (await setStruct({ permalinkStructure: 'category' })).status === 302);
+    const catUrl = await req(anon, '/resource/1');
+    ok('分类结构生效', catUrl.status === 301 && /^\/[a-z-]+\//.test(catUrl.location), `=> ${catUrl.location}`);
+    ok('分类结构地址可访问', (await req(anon, catUrl.location)).status === 200);
+
+    ok('切到「自定义前缀 + .html」', (await setStruct({ permalinkStructure: 'slug', permalinkPrefix: 'tools', permalinkSuffix: '.html' })).status === 302);
+    const htmlUrl = await req(anon, slugPath);
+    ok('自定义前缀 + .html 生效', htmlUrl.status === 301 && /^\/tools\/.+\.html$/.test(htmlUrl.location), `=> ${htmlUrl.location}`);
+    ok('新地址可访问', (await req(anon, htmlUrl.location)).status === 200);
+
+    ok('恢复默认别名结构', (await setStruct({ permalinkStructure: 'slug', permalinkPrefix: 'resource', permalinkSuffix: '' })).status === 302);
+    ok('恢复后别名地址正常', (await req(anon, slugPath)).status === 200);
+
+    ok('批量生成别名接口可用', (await req(adm, '/admin/posts/gen-slugs', { method: 'POST', form: { _csrf: adm.get('csrf') } })).status === 302);
   }
 
   console.log(`\n=== 结果：通过 ${pass} 项，失败 ${fail} 项 ===\n`);

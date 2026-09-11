@@ -25,6 +25,15 @@ store.installExitHooks();
 const seeded = seed();
 userCleanup();
 
+// 链接结构依赖 slug：启动时兜底补齐历史数据的别名
+try {
+  const permalink = require('./src/services/permalink');
+  const filled = permalink.generateAllSlugs();
+  if (filled) console.log(`[slug] 已为 ${filled} 条内容生成链接别名`);
+} catch (err) {
+  console.error('[slug] 生成别名失败:', err.message);
+}
+
 function userCleanup() {
   const userSvc = require('./src/services/user');
   try { userSvc.cleanupSessions(); } catch (_) { /* ignore */ }

@@ -175,6 +175,89 @@
     </div>
   </div>
 
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;">
+    <div class="card">
+      <div class="card-head"><h3>链接结构（Permalink）</h3></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>文章 URL 结构</label>
+          <select class="form-control" name="permalinkStructure">
+            <% permalinkStructures.forEach(function (st) { %>
+              <option value="<%= st.key %>" <%= s.permalinkStructure === st.key ? 'selected' : '' %>><%= st.label %> —— <%= st.desc %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>链接前缀</label>
+            <input class="form-control" type="text" name="permalinkPrefix" value="<%= s.permalinkPrefix || '' %>" placeholder="resource">
+            <div class="hint">可改成 tools / soft 等</div>
+          </div>
+          <div class="form-group">
+            <label>URL 后缀</label>
+            <select class="form-control" name="permalinkSuffix">
+              <option value="" <%= s.permalinkSuffix !== '.html' ? 'selected' : '' %>>无后缀</option>
+              <option value=".html" <%= s.permalinkSuffix === '.html' ? 'selected' : '' %>>.html</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>别名生成策略</label>
+            <select class="form-control" name="slugMode">
+              <option value="auto" <%= s.slugMode !== 'full' ? 'selected' : '' %>>英文优先（推荐）</option>
+              <option value="full" <%= s.slugMode === 'full' ? 'selected' : '' %>>保留中文</option>
+            </select>
+            <div class="hint">标题含英文工具名时 URL 更干净</div>
+          </div>
+        </div>
+        <div class="alert alert-info" style="font-size:12.5px;margin-bottom:0;">
+          <b>当前示例：</b><span class="mono"><%= permalinkSample %></span><br>
+          修改后全站内部链接会自动跟随；旧链接（包括数字 ID 形式）会 <b>301 永久跳转</b> 到新地址，已收录的页面不会失效。
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>SEO 增强</h3></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>社交分享默认图（og:image）</label>
+          <div style="display:flex;gap:8px;">
+            <input class="form-control" type="text" name="ogImage" id="ogImage" value="<%= s.ogImage || '' %>" placeholder="/uploads/images/og-cover.png">
+            <input type="file" accept="image/*" style="display:none;" id="ogFile" onchange="uploadFile(this,'ogImage')">
+            <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('ogFile').click()">上传</button>
+          </div>
+          <div class="hint">建议尺寸 1200×630，分享到微信 / QQ / Twitter 时的缩略图</div>
+        </div>
+        <div class="form-group">
+          <label>搜索引擎站长验证</label>
+          <div class="form-row">
+            <input class="form-control" type="text" name="verifyBaidu" value="<%= s.verifyBaidu || '' %>" placeholder="百度验证码">
+            <input class="form-control" type="text" name="verifyGoogle" value="<%= s.verifyGoogle || '' %>" placeholder="Google 验证码">
+          </div>
+          <div class="form-row" style="margin-top:8px;">
+            <input class="form-control" type="text" name="verifyBing" value="<%= s.verifyBing || '' %>" placeholder="Bing 验证码">
+            <input class="form-control" type="text" name="verify360" value="<%= s.verify360 || '' %>" placeholder="360 验证码">
+          </div>
+          <div style="margin-top:8px;">
+            <input class="form-control" type="text" name="verifySogou" value="<%= s.verifySogou || '' %>" placeholder="搜狗验证码">
+          </div>
+          <div class="hint">填入各站长平台给出的 content 值，页面会自动输出对应的 meta 标签</div>
+        </div>
+        <label class="checkbox" style="margin-bottom:8px;">
+          <input type="checkbox" name="searchPageNoindex" <%= s.searchPageNoindex !== false ? 'checked' : '' %>> 搜索 / 筛选结果页 noindex（推荐开启，避免低质页面进索引）
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="enableStructuredData" <%= s.enableStructuredData !== false ? 'checked' : '' %>> 输出 JSON-LD 结构化数据（推荐开启）
+        </label>
+        <div class="muted small" style="margin-top:12px;">
+          SEO 文件：<a href="/sitemap.xml" target="_blank">/sitemap.xml</a> ·
+          <a href="/robots.txt" target="_blank">/robots.txt</a> ·
+          <a href="/rss.xml" target="_blank">/rss.xml</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
       <div class="muted small">数据文件大小：<%= formatSize(dbSize) %> · 修改后点击右侧按钮保存</div>

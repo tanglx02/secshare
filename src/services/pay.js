@@ -11,6 +11,7 @@ const crypto = require('crypto');
 
 const store = require('../db/store');
 const config = require('../config');
+const secret = require('../utils/secret');
 const { getSettings } = require('./settings');
 
 const GATEWAYS = {
@@ -18,39 +19,18 @@ const GATEWAYS = {
   sandbox: 'https://openapi-sandbox.dl.alipaydev.com/gateway.do',
 };
 
-const KEY_ENC_ALGO = 'aes-256-gcm';
+const KEY_NS = 'alipay';
 
 // ============================================================
-// 密钥加解密
+// 密钥加解密（统一走 utils/secret，密钥派生自 SESSION_SECRET）
 // ============================================================
-
-function keyMaterial() {
-  return crypto.scryptSync(String(config.sessionSecret), 'secshare-alipay-v1', 32);
-}
 
 function encryptSecret(plain) {
-  const text = String(plain || '');
-  if (!text) return '';
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(KEY_ENC_ALGO, keyMaterial(), iv);
-  const data = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return `v1:${iv.toString('base64')}:${tag.toString('base64')}:${data.toString('base64')}`;
+  return secret.encryptSecret(plain, KEY_NS);
 }
 
 function decryptSecret(payload) {
-  const raw = String(payload || '');
-  if (!raw) return '';
-  if (!raw.startsWith('v1:')) return raw; // 兼容历史明文
-  const parts = raw.split(':');
-  if (parts.length !== 4) return '';
-  try {
-    const decipher = crypto.createDecipheriv(KEY_ENC_ALGO, keyMaterial(), Buffer.from(parts[1], 'base64'));
-    decipher.setAuthTag(Buffer.from(parts[2], 'base64'));
-    return Buffer.concat([decipher.update(Buffer.from(parts[3], 'base64')), decipher.final()]).toString('utf8');
-  } catch (_) {
-    return ''; // SESSION_SECRET 变更后无法解密，需重新填写
-  }
+  return secret.decryptSecret(payload, KEY_NS);
 }
 
 // ============================================================

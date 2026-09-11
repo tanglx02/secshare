@@ -11,6 +11,8 @@ const content = require('../services/content');
 const userSvc = require('../services/user');
 const backup = require('../services/backup');
 const pay = require('../services/pay');
+const mailer = require('../services/mailer');
+const permalink = require('../services/permalink');
 const { getSettings, DEFAULTS } = require('../services/settings');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const helpers = require('../utils/helpers');
@@ -234,11 +236,21 @@ router.post('/posts/save', (req, res) => {
     post = store.insert('posts', Object.assign(data, {
       views: 0, downloads: 0, publishedAt: new Date().toISOString(),
     }));
-    if (!data.slug) post.slug = helpers.slugify(data.title).slice(0, 60) || `p-${post.id}`;
+  }
+  // 别名兜底 + 唯一化（链接结构依赖 slug）
+  const finalSlug = permalink.uniqueSlug(post.slug || permalink.generateSlug(post.title, post.id), post.id);
+  if (finalSlug !== post.slug) {
+    post.slug = finalSlug;
     store.save();
   }
   content.syncTagCounts();
   res.redirect('/admin/posts');
+});
+
+/** 一键为所有缺少别名的内容生成 slug */
+router.post('/posts/gen-slugs', (req, res) => {
+  const n = permalink.generateAllSlugs();
+  res.redirect('/admin/posts?msg=' + encodeURIComponent(n > 0 ? `已为 ${n} 条内容生成链接别名` : '所有内容都已有链接别名'));
 });
 
 router.post('/posts/:id/delete', (req, res) => {
@@ -550,12 +562,16 @@ const BOOL_KEYS = [
   'commentsEnabled', 'registerEnabled', 'registerNeedInvite', 'downloadNeedLogin',
   'adsEnabled', 'vipEnabled', 'shopEnabled', 'payMock',
   'alipayEnabled', 'backupAutoEnabled', 'backupIncludeUploads',
+  'registerNeedEmailVerify', 'mailEchoCode', 'searchPageNoindex', 'enableStructuredData',
 ];
 
 router.get('/settings', (req, res) => {
+  const samplePost = store.all('posts')[0];
   res.render('admin/settings', adminLocals({
     layoutTitle: '系统设置', activeMenu: 'settings',
     s: getSettings(), boolKeys: BOOL_KEYS,
+    permalinkStructures: permalink.STRUCTURES,
+    permalinkSample: samplePost ? permalink.postPath(samplePost) : '/resource/示例别名',
     dbSize: (() => { try { return fs.statSync(config.paths.dbFile).size; } catch (_) { return 0; } })(),
   }));
 });
@@ -711,6 +727,46 @@ router.post('/payment', (req, res) => {
 router.post('/payment/test', async (req, res) => {
   const r = await pay.testConnection();
   res.redirect('/admin/payment?' + (r.ok ? 'msg=' : 'err=') + encodeURIComponent((r.ok ? '连接正常：' : '连接失败：') + r.message));
+});
+
+// ---------------- 邮件服务（SMTP） ----------------
+router.get('/mail', (req, res) => {
+  res.render('admin/mail', adminLocals({
+    layoutTitle: '邮件设置', activeMenu: 'mail',
+    cfg: mailer.getMailConfig(),
+    codes: mailer.recentCodes(15),
+    s: getSettings(),
+  }));
+});
+
+router.post('/mail', (req, res) => {
+  try {
+    mailer.saveMailConfig(req.body);
+    res.redirect('/admin/mail?msg=' + encodeURIComponent('邮件配置已保存'));
+  } catch (err) {
+    res.redirect('/admin/mail?err=' + encodeURIComponent(err.message));
+  }
+});
+
+router.post('/mail/test', async (req, res) => {
+  const to = String(req.body.testTo || '').trim();
+  if (to) {
+    try {
+      const s = getSettings();
+      await mailer.sendMail({
+        to,
+        subject: `【${s.siteName}】邮件服务测试`,
+        html: `<p>这是一封测试邮件，能收到即表示 SMTP 配置正确。</p>
+               <p>发送时间：${new Date().toLocaleString('zh-CN')}</p>
+               <p style="color:#9ca3af;font-size:12px;">本邮件由 ${s.siteName} 后台自动发送。</p>`,
+      });
+      return res.redirect('/admin/mail?msg=' + encodeURIComponent(`测试邮件已发送到 ${to}，请查收（含垃圾箱）`));
+    } catch (err) {
+      return res.redirect('/admin/mail?err=' + encodeURIComponent('发送失败：' + err.message));
+    }
+  }
+  const r = await mailer.testConnection();
+  res.redirect('/admin/mail?' + (r.ok ? 'msg=' : 'err=') + encodeURIComponent((r.ok ? '连接正常：' : '连接失败：') + r.message));
 });
 
 // ---------------- 上传接口 ----------------

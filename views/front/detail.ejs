@@ -1,4 +1,56 @@
 <%- include('partials/head') %>
+<%
+  /* 结构化数据：软件/文章 + 面包屑，提升搜索结果展现 */
+  if (settings.enableStructuredData !== false) {
+    var _base = String(settings.siteUrl || '').replace(/\/+$/, '');
+    var _pageUrl = _base + (post.url || '');
+    var isDoc = raw.type === 'doc';
+    var ld = {
+      '@context': 'https://schema.org',
+      '@type': isDoc ? 'Article' : 'SoftwareApplication',
+      name: raw.title,
+      headline: raw.title,
+      description: raw.summary || helpers.excerpt(raw.content, 150),
+      url: _pageUrl,
+      datePublished: raw.publishedAt || raw.createdAt,
+      dateModified: raw.updatedAt || raw.publishedAt || raw.createdAt,
+      inLanguage: 'zh-CN',
+      author: { '@type': 'Organization', name: settings.siteName },
+      publisher: {
+        '@type': 'Organization',
+        name: settings.siteName,
+        logo: { '@type': 'ImageObject', url: settings.logoImage || (_base + '/favicon.svg') }
+      }
+    };
+    if (!isDoc) {
+      ld.applicationCategory = 'SecurityApplication';
+      ld.operatingSystem = raw.platform || 'Windows / Linux / macOS';
+      if (raw.version) ld.softwareVersion = raw.version;
+      ld.offers = {
+        '@type': 'Offer',
+        price: ((raw.price || 0) / 100).toFixed(2),
+        priceCurrency: 'CNY',
+        availability: 'https://schema.org/InStock'
+      };
+    }
+    if (raw.tags && raw.tags.length) ld.keywords = raw.tags.join(',');
+    if (raw.cover) ld.image = /^https?:/i.test(raw.cover) ? raw.cover : (_base + raw.cover);
+
+    var _crumb = [
+      { '@type': 'ListItem', position: 1, name: '首页', item: _base + '/' },
+      { '@type': 'ListItem', position: 2, name: '全部资源', item: _base + '/resources' }
+    ];
+    if (category) {
+      _crumb.push({ '@type': 'ListItem', position: 3, name: category.name, item: _base + '/category/' + category.slug });
+    }
+    _crumb.push({ '@type': 'ListItem', position: _crumb.length + 1, name: raw.title, item: _pageUrl });
+    var ldBreadcrumb = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: _crumb };
+  }
+%>
+<% if (settings.enableStructuredData !== false) { %>
+<script type="application/ld+json"><%- JSON.stringify(ld).replace(/</g, '\\u003c') %></script>
+<script type="application/ld+json"><%- JSON.stringify(ldBreadcrumb).replace(/</g, '\\u003c') %></script>
+<% } %>
 
 <div class="container">
   <div class="breadcrumb">

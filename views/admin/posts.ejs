@@ -1,8 +1,11 @@
 <%- include('partials/head') %>
 
+<% if (query.msg) { %><div class="alert alert-success"><%= query.msg %></div><% } %>
+
 <div class="card">
   <div class="card-body">
     <form class="filters" method="get" action="/admin/posts">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
       <div class="form-group">
         <label>关键词</label>
         <input class="form-control" type="text" name="q" value="<%= filter.q %>" placeholder="标题 / 内容">
@@ -36,6 +39,8 @@
       <button class="btn btn-primary" type="submit">🔍 筛选</button>
       <a class="btn btn-outline" href="/admin/posts">重置</a>
       <span class="spacer" style="flex:1;"></span>
+      <button class="btn btn-outline" type="submit" formaction="/admin/posts/gen-slugs" formmethod="post" formnovalidate
+        title="为所有缺少链接别名的内容按标题自动生成 slug">🔗 生成链接别名</button>
       <a class="btn btn-success" href="/admin/posts/new">＋ 新增内容</a>
     </form>
   </div>

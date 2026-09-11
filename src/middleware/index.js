@@ -88,6 +88,7 @@ function attachGlobals(req, res, next) {
   res.locals.user = user;
   res.locals.isVip = userService.isVip(user);
   res.locals.path = req.path;
+  res.locals.fullPath = req.originalUrl || req.path;
   res.locals.query = req.query || {};
   res.locals.currentYear = new Date().getFullYear();
   res.locals.settings = getSettings();

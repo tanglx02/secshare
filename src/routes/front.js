@@ -5,6 +5,8 @@ const store = require('../db/store');
 const content = require('../services/content');
 const userSvc = require('../services/user');
 const pay = require('../services/pay');
+const permalink = require('../services/permalink');
+const mailer = require('../services/mailer');
 const { getSettings } = require('../services/settings');
 const { esc, formatDate, timeAgo, compactNumber, formatSize, formatMoney, parseMoney, excerpt, paginate, slugify } = require('../utils/helpers');
 const md = require('../utils/markdown');
@@ -21,17 +23,33 @@ function baseLocals(extra = {}) {
     desc: settings.siteDescription,
     keywords: settings.siteKeywords,
     canonical: '',
+    ogImage: settings.ogImage || '',
+    ogType: 'website',
+    robots: '',
   }, extra);
 }
 
-function postUrl(post) {
-  return `/resource/${post.slug || post.id}`;
+/** 文章链接统一走 permalink 服务：后台改了链接结构，全站内部链接自动跟随 */
+function postUrl(post, category) {
+  if (!post) return '/';
+  try {
+    return permalink.postUrl(post, category);
+  } catch (_) {
+    return `/resource/${post.slug || post.id}`;
+  }
+}
+
+/** 拼接绝对地址（canonical / og:url 使用） */
+function absoluteUrl(req, path) {
+  const base = (getSettings().siteUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+  const p = String(path || '/');
+  return base + (p.startsWith('/') ? p : `/${p}`);
 }
 
 function decorate(post) {
   const cat = store.findById('categories', post.categoryId);
   return Object.assign({}, post, {
-    url: postUrl(post),
+    url: postUrl(post, cat),
     categoryName: cat ? cat.name : '未分类',
     categorySlug: cat ? cat.slug : '',
     categoryIcon: cat ? cat.icon : '📦',
@@ -100,6 +118,8 @@ pageRouter.get('/resources', (req, res) => {
     title: `${pageTitle} - ${getSettings().siteName}`,
     pageTitle,
     desc: category ? category.description : getSettings().siteDescription,
+    robots: (getSettings().searchPageNoindex !== false
+      && (type || cat || tag || q || level || (sort && sort !== 'new'))) ? 'noindex,follow' : '',
     posts: result.list.map(decorate),
     pager: result.pager,
     currentCategory: category,
@@ -168,6 +188,7 @@ pageRouter.get('/search', (req, res) => {
   res.render('front/list', baseLocals({
     title: `搜索 ${q} - ${getSettings().siteName}`,
     pageTitle: q ? `“${q}” 的搜索结果` : '搜索资源',
+    robots: 'noindex,follow',
     posts: result.list.map(decorate),
     pager: result.pager,
     keyword: q,
@@ -181,24 +202,31 @@ pageRouter.get('/search', (req, res) => {
   }));
 });
 
-// 资源详情
-pageRouter.get('/resource/:idOrSlug', (req, res) => {
-  const post = content.getPost(req.params.idOrSlug);
-  if (!post || post.status !== 'published') {
-    return res.status(404).render('front/404', baseLocals({ title: '资源不存在或已下架', pageTitle: '资源不存在' }));
+// 资源详情：解析任意历史形式的链接，并 301 到当前规范地址（利于 SEO 权重集中）
+function renderPostPage(req, res, post, currentPath) {
+  const cat = store.findById('categories', post.categoryId);
+
+  if (!permalink.isCanonical(post, currentPath, cat)) {
+    return res.redirect(301, encodeURI(permalink.postPath(post, cat)));
   }
+
   content.bumpViews(post.id);
-  const fresh = content.getPost(post.id);
-  const cat = store.findById('categories', fresh.categoryId);
+  const fresh = store.findById('posts', post.id);
   const related = content.relatedPosts(fresh, 6).map(decorate);
   const comments = content.listComments(fresh.id);
   const access = userSvc.checkAccess(req.user, fresh);
+  const canonicalPath = permalink.postPath(fresh, cat);
 
   res.render('front/detail', baseLocals({
     title: `${fresh.title} - ${getSettings().siteName}`,
     pageTitle: fresh.title,
     desc: fresh.summary || excerpt(fresh.content, 150),
     keywords: (fresh.tags || []).join(','),
+    canonical: absoluteUrl(req, canonicalPath),
+    ogImage: fresh.cover || getSettings().ogImage || '',
+    ogType: 'article',
+    publishedTime: fresh.publishedAt || fresh.createdAt,
+    modifiedTime: fresh.updatedAt || fresh.publishedAt || fresh.createdAt,
     post: decorate(fresh),
     raw: fresh,
     contentHtml: md.render(fresh.content),
@@ -212,6 +240,14 @@ pageRouter.get('/resource/:idOrSlug', (req, res) => {
     formatSize,
     formatDate,
   }));
+}
+
+pageRouter.get('/resource/:key', (req, res, next) => {
+  const post = permalink.resolveKey(req.params.key);
+  if (!post || post.status !== 'published') {
+    return res.status(404).render('front/404', baseLocals({ title: '资源不存在或已下架', pageTitle: '资源不存在' }));
+  }
+  renderPostPage(req, res, post, req.path);
 });
 
 // 资源下载中转页
@@ -339,29 +375,94 @@ pageRouter.post('/login', (req, res) => {
 
 pageRouter.get('/register', (req, res) => {
   if (req.user) return res.redirect('/user');
-  if (getSettings().registerEnabled === false) {
+  const settings = getSettings();
+  if (settings.registerEnabled === false) {
     return res.render('front/error', baseLocals({ title: '注册已关闭', pageTitle: '注册已关闭', status: 403, message: '站点当前未开放注册，请联系站长获取账号。' }));
   }
-  res.render('front/register', baseLocals({ title: `注册 - ${getSettings().siteName}`, pageTitle: '注册', error: null, form: {} }));
+  res.render('front/register', baseLocals({
+    title: `注册 - ${settings.siteName}`,
+    pageTitle: '注册',
+    robots: 'noindex,follow',
+    needEmailVerify: settings.registerNeedEmailVerify === true,
+    mailReady: mailer.isMailReady(),
+    needInvite: settings.registerNeedInvite === true,
+    error: null,
+    form: {},
+  }));
 });
 
 pageRouter.post('/register', (req, res) => {
-  if (getSettings().registerEnabled === false) return res.status(403).send('注册已关闭');
-  const { username, email, password, password2, inviteCode } = req.body;
+  const settings = getSettings();
+  if (settings.registerEnabled === false) return res.status(403).send('注册已关闭');
+
+  const { username, email, password, password2, inviteCode, emailCode } = req.body;
   const form = { username, email, inviteCode };
-  const fail = (msg) => res.status(400).render('front/register', baseLocals({ title: `注册 - ${getSettings().siteName}`, pageTitle: '注册', error: msg, form }));
+  const fail = (msg) => res.status(400).render('front/register', baseLocals({
+    title: `注册 - ${settings.siteName}`,
+    pageTitle: '注册',
+    robots: 'noindex,follow',
+    needEmailVerify: settings.registerNeedEmailVerify === true,
+    mailReady: mailer.isMailReady(),
+    needInvite: settings.registerNeedInvite === true,
+    error: msg,
+    form,
+  }));
 
   if (!username || String(username).trim().length < 3) return fail('用户名至少 3 个字符');
   if (!/^[\w\u4e00-\u9fa5.@-]{3,30}$/.test(String(username))) return fail('用户名只能包含字母、数字、下划线、中文');
   if (!password || String(password).length < 6) return fail('密码至少 6 位');
   if (password !== password2) return fail('两次输入的密码不一致');
 
-  const r = userSvc.register({ username, email, password, inviteCode, ip: userSvc.clientIp(req) });
+  // 邮箱验证码校验（开启后必须通过才能注册）
+  if (settings.registerNeedEmailVerify === true) {
+    if (!email) return fail('请填写邮箱');
+    const v = mailer.verifyCode(email, emailCode);
+    if (!v.ok) return fail(v.message);
+  }
+
+  const ip = userSvc.clientIp(req);
+
+  // 同 IP 注册频率限制，配合邮箱验证一起挡批量注册
+  const limit = Number(settings.registerIpDailyLimit);
+  if (Number.isFinite(limit) && limit > 0 && ip) {
+    const since = Date.now() - 86400000;
+    const used = store.count('users', (u) => u.registerIp === ip && new Date(u.createdAt || 0).getTime() > since);
+    if (used >= limit) {
+      return fail(`同一网络 24 小时内最多注册 ${limit} 个账号，请稍后再试或联系站长`);
+    }
+  }
+
+  const r = userSvc.register({ username, email, password, inviteCode, ip });
   if (r.error) return fail(r.error);
 
   const { token } = userSvc.createSession(r.user.id, req);
   res.cookie('sid', token, { maxAge: 14 * 86400000, httpOnly: true, sameSite: 'Lax' });
   res.redirect('/user');
+});
+
+// 发送邮箱验证码（注册用）
+apiRouter.post('/register/send-code', async (req, res) => {
+  const settings = getSettings();
+  if (settings.registerEnabled === false) return res.json({ ok: false, error: '站点未开放注册' });
+  if (settings.registerNeedEmailVerify !== true) return res.json({ ok: false, error: '站点未开启邮箱验证，可直接注册' });
+
+  const email = String(req.body.email || '').trim();
+  if (!email) return res.json({ ok: false, error: '请先填写邮箱' });
+
+  try {
+    const r = await mailer.sendVerifyCode({ email, ip: userSvc.clientIp(req) });
+    if (!r.ok) return res.json({ ok: false, error: r.message });
+    // 仅在「未配置 SMTP 的调试模式」且管理员显式开启回显时，才把验证码直接返回给前端
+    const echo = r.devMode === true && settings.mailEchoCode === true;
+    return res.json({
+      ok: true,
+      message: r.message,
+      devMode: r.devMode === true,
+      code: echo ? r.code : undefined,
+    });
+  } catch (err) {
+    return res.json({ ok: false, error: `发送失败：${err.message}` });
+  }
 });
 
 pageRouter.get('/logout', (req, res) => {
@@ -480,7 +581,7 @@ pageRouter.get('/sitemap.xml', (req, res) => {
     { loc: '/resources', pri: '0.9' },
     { loc: '/vip', pri: '0.8' },
     ...store.all('categories').map((c) => ({ loc: `/category/${c.slug}`, pri: '0.7' })),
-    ...posts.map((p) => ({ loc: `/resource/${p.slug || p.id}`, pri: '0.6', lastmod: (p.updatedAt || p.createdAt || '').slice(0, 10) })),
+    ...posts.map((p) => ({ loc: postUrl(p), pri: '0.6', lastmod: (p.updatedAt || p.publishedAt || p.createdAt || '').slice(0, 10) })),
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`
     + urls.map((u) => `  <url><loc>${esc(base + u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}<priority>${u.pri}</priority></url>`).join('\n')
@@ -510,6 +611,23 @@ pageRouter.get('/rss.xml', (req, res) => {
     + posts.map((p) => `  <item><title>${esc(p.title)}</title><link>${esc(base + postUrl(p))}</link><description>${esc(p.summary || '')}</description><pubDate>${new Date(p.publishedAt || p.createdAt).toUTCString()}</pubDate></item>`).join('\n')
     + `\n</channel></rss>`;
   res.type('application/rss+xml').send(xml);
+});
+
+// 兜底路由：解析「分类/别名」「类型/别名」「自定义前缀/别名」形式的链接
+// 必须放在所有具体路由之后，命中失败则交给 404 处理
+pageRouter.get('/:first/:second', (req, res, next) => {
+  const RESERVED = new Set([
+    'admin', 'api', 'uploads', 'css', 'js', 'favicon.svg', 'healthz',
+    'resource', 'category', 'tag', 'user', 'pay', 'order', 'search',
+    'login', 'register', 'logout', 'vip', 'about', 'disclaimer',
+    'copyright', 'contact', 'download', 'sitemap.xml', 'robots.txt', 'rss.xml',
+  ]);
+  if (RESERVED.has(req.params.first)) return next();
+
+  const post = permalink.resolveSegments(req.params.first, req.params.second);
+  if (!post || post.status !== 'published') return next();
+
+  return renderPostPage(req, res, post, req.path);
 });
 
 // ============================================================
