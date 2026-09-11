@@ -15,46 +15,28 @@
       <span class="mark">🛡</span>
       <span><%= siteName %></span>
     </div>
-    <nav id="adminNav">
-      <div class="nav-group" data-group="content">
-        <button type="button" class="group-toggle" aria-expanded="true">
-          <span>内容运营</span><span class="arrow">▾</span>
-        </button>
-        <div class="group-items">
-          <a href="/admin" class="<%= activeMenu === 'dashboard' ? 'active' : '' %>"><span class="ico">📊</span><span>仪表盘</span></a>
-          <a href="/admin/posts" class="<%= activeMenu === 'posts' ? 'active' : '' %>"><span class="ico">📦</span><span>资源管理</span></a>
-          <a href="/admin/categories" class="<%= activeMenu === 'categories' ? 'active' : '' %>"><span class="ico">📂</span><span>分类管理</span></a>
-          <a href="/admin/tags" class="<%= activeMenu === 'tags' ? 'active' : '' %>"><span class="ico">🏷️</span><span>标签管理</span></a>
-          <a href="/admin/comments" class="<%= activeMenu === 'comments' ? 'active' : '' %>"><span class="ico">💬</span><span>评论管理</span></a>
-          <a href="/admin/announcements" class="<%= activeMenu === 'announcements' ? 'active' : '' %>"><span class="ico">📢</span><span>公告管理</span></a>
-        </div>
-      </div>
+    <nav>
+      <div class="group">内容运营</div>
+      <a href="/admin" class="<%= activeMenu === 'dashboard' ? 'active' : '' %>"><span class="ico">📊</span><span>仪表盘</span></a>
+      <a href="/admin/posts" class="<%= activeMenu === 'posts' ? 'active' : '' %>"><span class="ico">📦</span><span>资源管理</span></a>
+      <a href="/admin/categories" class="<%= activeMenu === 'categories' ? 'active' : '' %>"><span class="ico">📂</span><span>分类管理</span></a>
+      <a href="/admin/tags" class="<%= activeMenu === 'tags' ? 'active' : '' %>"><span class="ico">🏷️</span><span>标签管理</span></a>
+      <a href="/admin/comments" class="<%= activeMenu === 'comments' ? 'active' : '' %>"><span class="ico">💬</span><span>评论管理</span></a>
+      <a href="/admin/announcements" class="<%= activeMenu === 'announcements' ? 'active' : '' %>"><span class="ico">📢</span><span>公告管理</span></a>
 
-      <div class="nav-group" data-group="biz">
-        <button type="button" class="group-toggle" aria-expanded="true">
-          <span>用户与变现</span><span class="arrow">▾</span>
-        </button>
-        <div class="group-items">
-          <a href="/admin/users" class="<%= activeMenu === 'users' ? 'active' : '' %>"><span class="ico">👥</span><span>用户管理</span></a>
-          <a href="/admin/orders" class="<%= activeMenu === 'orders' ? 'active' : '' %>"><span class="ico">🧾</span><span>订单管理</span></a>
-          <a href="/admin/plans" class="<%= activeMenu === 'plans' ? 'active' : '' %>"><span class="ico">👑</span><span>会员套餐</span></a>
-          <a href="/admin/ads" class="<%= activeMenu === 'ads' ? 'active' : '' %>"><span class="ico">📈</span><span>广告管理</span></a>
-        </div>
-      </div>
+      <div class="group">用户与变现</div>
+      <a href="/admin/users" class="<%= activeMenu === 'users' ? 'active' : '' %>"><span class="ico">👥</span><span>用户管理</span></a>
+      <a href="/admin/mail" class="<%= activeMenu === 'mail' ? 'active' : '' %>"><span class="ico">✉️</span><span>邮件设置</span></a>
+      <a href="/admin/orders" class="<%= activeMenu === 'orders' ? 'active' : '' %>"><span class="ico">🧾</span><span>订单管理</span></a>
+      <a href="/admin/plans" class="<%= activeMenu === 'plans' ? 'active' : '' %>"><span class="ico">👑</span><span>会员套餐</span></a>
+      <a href="/admin/payment" class="<%= activeMenu === 'payment' ? 'active' : '' %>"><span class="ico">💳</span><span>支付设置</span></a>
+      <a href="/admin/ads" class="<%= activeMenu === 'ads' ? 'active' : '' %>"><span class="ico">📈</span><span>广告管理</span></a>
+      <a href="/admin/links" class="<%= activeMenu === 'links' ? 'active' : '' %>"><span class="ico">🔗</span><span>友情链接</span></a>
 
-      <div class="nav-group" data-group="config">
-        <button type="button" class="group-toggle" aria-expanded="true">
-          <span>配置与系统</span><span class="arrow">▾</span>
-        </button>
-        <div class="group-items">
-          <a href="/admin/mail" class="<%= activeMenu === 'mail' ? 'active' : '' %>"><span class="ico">✉️</span><span>邮件设置</span></a>
-          <a href="/admin/payment" class="<%= activeMenu === 'payment' ? 'active' : '' %>"><span class="ico">💳</span><span>支付设置</span></a>
-          <a href="/admin/settings" class="<%= activeMenu === 'settings' ? 'active' : '' %>"><span class="ico">⚙️</span><span>系统设置</span></a>
-          <a href="/admin/stats" class="<%= activeMenu === 'stats' ? 'active' : '' %>"><span class="ico">📉</span><span>数据统计</span></a>
-          <a href="/admin/backup" class="<%= activeMenu === 'backup' ? 'active' : '' %>"><span class="ico">💾</span><span>数据备份</span></a>
-          <a href="/admin/links" class="<%= activeMenu === 'links' ? 'active' : '' %>"><span class="ico">🔗</span><span>友情链接</span></a>
-        </div>
-      </div>
+      <div class="group">系统</div>
+      <a href="/admin/stats" class="<%= activeMenu === 'stats' ? 'active' : '' %>"><span class="ico">📉</span><span>数据统计</span></a>
+      <a href="/admin/backup" class="<%= activeMenu === 'backup' ? 'active' : '' %>"><span class="ico">💾</span><span>数据备份</span></a>
+      <a href="/admin/settings" class="<%= activeMenu === 'settings' ? 'active' : '' %>"><span class="ico">⚙️</span><span>系统设置</span></a>
     </nav>
   </aside>
 
